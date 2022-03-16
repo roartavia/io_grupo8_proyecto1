@@ -5,6 +5,7 @@ Proyecto # 1 - Investigación de operaciones - TEC 2022
 
 ### Prerequisit
 Python3
+pip install numpy
 
 ### How to exc
 
