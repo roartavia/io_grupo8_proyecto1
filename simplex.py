@@ -85,22 +85,46 @@ def main():
 
 def startSimplexIterations(matrix, vnBNumber):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
-    isDone = isRowPositive(matrix[0], vnBNumber)
-
     # if isDone:
     #   then you have the best possible outcome
     # if no:
-    if isDone:
+    if isRowPositive(matrix[0], vnBNumber):
         print("FINISHED")
         return
     else:
         #   TODO: check if this is still valid(?)
         #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+        cp_index = getIndexForLessN(matrix[0], vnBNumber)
+        CP = matrix[:, cp_index]
+        print(CP)
+        FP = matrix[:, len(matrix[0]) - 1]
+        print(FP)
         #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
         #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
         #   This index is the FILA PIVOTE
         #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the variable basica entrante
+
         return
+
+
+def getIndexLesserWhileDivByCP(row, cp):
+    resultIndex = -1
+    for i in range(1, len(row)):
+        # omit 0 because is undefined
+        if cp[i] != 0:
+            if (resultIndex == -1) or (row[i]/cp[i] < row[resultIndex]/cp[resultIndex]):
+                resultIndex = i
+    return resultIndex
+
+
+def getIndexForLessN(row, end=-1):
+    resultIndex = 0
+    if end == -1:
+        end = len(row)
+    for i in range(1, end):
+        if row[i] < row[resultIndex]:
+            resultIndex = i
+    return resultIndex
 
 
 def isRowPositive(row, end):
