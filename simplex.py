@@ -76,8 +76,39 @@ def main():
 
     someTestingText = getPrintableMatrix(
         headers, rowsDescription, initialMatrix)
-    print(someTestingText)
-    writeToFile(someTestingText, solutionFileName)
+    # print(someTestingText)
+    # writeToFile(someTestingText, solutionFileName)
+    startSimplexIterations(initialMatrix, numberDesicionVars)
+
+# VnBNumber - number of variables no basicas
+
+
+def startSimplexIterations(matrix, vnBNumber):
+    # Check if all the row[0][i] with i<VnBNumber  are >= 0
+    isDone = isRowPositive(matrix[0], vnBNumber)
+
+    # if isDone:
+    #   then you have the best possible outcome
+    # if no:
+    if isDone:
+        print("FINISHED")
+        return
+    else:
+        #   TODO: check if this is still valid(?)
+        #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+        #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
+        #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
+        #   This index is the FILA PIVOTE
+        #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the variable basica entrante
+        return
+
+
+def isRowPositive(row, end):
+    for i in range(0, end):
+        item = row[i]
+        if item < 0:
+            return False
+    return True
 
 
 def displayHelp():
@@ -104,27 +135,27 @@ def buildMatrix(coeficientesFn, coeficientesRestr, problemDescr):
     # cols = (amout of total vars) + LD
     # rows = (amout of restrictions or basic vars) + U
     matrix = numpy.zeros(
-        [(numberOfTotalVars + 1), (numberRestrictions + 1)])
+        [(numberRestrictions + 1), (numberOfTotalVars + 1)])
     currentRowIndex = 0
     # We can use the numberDesicionVars
     for coeficiente in coeficientesFn:
         # Move to left side of the expression
-        matrix[currentRowIndex][0] = (float(coeficiente)) * -1
+        matrix[0][currentRowIndex] = (float(coeficiente)) * -1
         currentRowIndex += 1
 
     diagonalStartIndex = numberDesicionVars
     for i in range(numberRestrictions):
         for j in range(numberDesicionVars):
-            matrix[j][i + 1] = float(coeficientesRestr[i][j])
+            matrix[i + 1][j] = float(coeficientesRestr[i][j])
         # diagonal
-        matrix[diagonalStartIndex][i + 1] = float(1)
+        matrix[i + 1][diagonalStartIndex] = float(1)
         diagonalStartIndex += 1
+
     # Now set the LD
     lastRowIndex = numberOfTotalVars
     for i in range(numberRestrictions):
-        matrix[lastRowIndex][i+1] = coeficientesRestr[i][len(
+        matrix[i + 1][lastRowIndex] = coeficientesRestr[i][len(
             coeficientesRestr[i]) - 1]
-
     return matrix
 
 
@@ -138,7 +169,7 @@ def getPrintableMatrix(headers, rowsDescr, content):
     for i in range(len(rowsDescr)):
         rowInfo = rowsDescr[i]
         contentToPrint += rowInfo + tabChar
-        currentContentRow = content[:, i]
+        currentContentRow = content[i]
         for contentItem in currentContentRow:
             contentToPrint += str(contentItem) + tabChar
         contentToPrint += enterChar
