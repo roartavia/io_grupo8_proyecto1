@@ -78,29 +78,84 @@ def main():
         headers, rowsDescription, initialMatrix)
     # print(someTestingText)
     # writeToFile(someTestingText, solutionFileName)
-    startSimplexIterations(initialMatrix, numberDesicionVars)
+    startSimplexIterations(
+        initialMatrix, numberDesicionVars, headers, rowsDescription)
 
 # VnBNumber - number of variables no basicas
 
 
-def startSimplexIterations(matrix, vnBNumber):
+def startSimplexIterations(matrix, vnBNumber, H, RD):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
-    isDone = isRowPositive(matrix[0], vnBNumber)
-
-    # if isDone:
-    #   then you have the best possible outcome
-    # if no:
-    if isDone:
+    if isRowPositive(matrix[0], vnBNumber):
+        # then you have the best possible outcome
         print("FINISHED")
         return
     else:
         #   TODO: check if this is still valid(?)
         #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+        cp_index = getIndexForLessN(matrix[0], vnBNumber)
+        CP = matrix[:, cp_index]
+        LD = matrix[:, len(matrix[0]) - 1]
+        print(matrix)
+        print("CP")
+        print(cp_index)
+        print(CP)
+        print("LD")
+        print(LD)
         #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
         #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
         #   This index is the FILA PIVOTE
-        #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the variable basica entrante
+        fp_index = getIndexLesserWhileDivByCP(LD, CP)
+        print(fp_index)
+        FP = matrix[fp_index]
+        print("FP")
+        print(FP)
+        #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the numero pivote
+        NP = matrix[fp_index][cp_index]
+        print("NP")
+        print(NP)
+        entrante = H[cp_index + 1]
+        saliente = RD[fp_index]
+        response = f'VB entrante: {entrante}, VB saliente: {saliente}, Número Pivot: {NP}'
+        # print estado
+        # print estado
+        # print respuesta parcial
+        print(response)
+        # variable basica que sale lp_index
+        # Now set the all CP to 0 except the fp_index, fp_index = 1
+        # then operación de reglón: all the FP need to be / NP
+        # CP already has the reference
+        for i in range(len(FP)):
+            FP[i] = FP[i]/NP
+        print(matrix)
+        for i in range(len(CP)):
+            if fp_index == i:
+                # print a 1
+                CP[i] = 1
+            else:
+                CP[i] = 0
+        print(matrix)
         return
+
+
+def getIndexLesserWhileDivByCP(ld, cp):
+    resultIndex = -1
+    for i in range(1, len(ld)):
+        # omit 0 because is undefined
+        if cp[i] != 0:
+            if (resultIndex == -1) or (ld[i]/cp[i] < ld[resultIndex]/cp[resultIndex]):
+                resultIndex = i
+    return resultIndex
+
+
+def getIndexForLessN(row, end=-1):
+    resultIndex = 0
+    if end == -1:
+        end = len(row)
+    for i in range(1, end):
+        if row[i] < row[resultIndex]:
+            resultIndex = i
+    return resultIndex
 
 
 def isRowPositive(row, end):
