@@ -86,15 +86,15 @@ def main():
     if listProblemDescription[0] == '0':
         print("simplex")
         startSimplexIterations(initialMatrix, numberDesicionVars, headers, rowsDescription)
-    if listProblemDescription[0] == '1':
+    elif listProblemDescription[0] == '1':
         print("Gran M")
         if listProblemDescription[1] == 'max':
             print("max")
-        if listProblemDescription[1]=="min":
+        elif listProblemDescription[1]=="min":
             print("min")
         else:
             print("invalid optimization method")
-    if listProblemDescription[0] == '2':
+    elif listProblemDescription[0] == '2':
         print("2 fases")
     else:
         print("invalid entered method ")
