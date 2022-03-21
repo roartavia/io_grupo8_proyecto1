@@ -78,8 +78,29 @@ def main():
         headers, rowsDescription, initialMatrix)
     # print(someTestingText)
     # writeToFile(someTestingText, solutionFileName)
-    startSimplexIterations(
-        initialMatrix, numberDesicionVars, headers, rowsDescription)
+
+    # startSimplexIterations(                                            #puede borrarse
+    # initialMatrix, numberDesicionVars, headers, rowsDescription)
+
+    # ---------------------------------------------------------
+    if listProblemDescription[0] == '0':
+        print("simplex")
+        startSimplexIterations(initialMatrix, numberDesicionVars, headers, rowsDescription)
+    if listProblemDescription[0] == '1':
+        print("Gran M")
+        if listProblemDescription[1] == 'max':
+            print("max")
+        if listProblemDescription[1]=="min":
+            print("min")
+        else:
+            print("invalid optimization method")
+    if listProblemDescription[0] == '2':
+        print("2 fases")
+    else:
+        print("invalid entered method ")
+
+    # -------------------------------------------------------
+
 
 # VnBNumber - number of variables no basicas
 
@@ -126,7 +147,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD):
         # then operación de reglón: all the FP need to be / NP
         # CP already has the reference
         for i in range(len(FP)):
-            FP[i] = FP[i]/NP
+            FP[i] = FP[i] / NP
         print(matrix)
         for i in range(len(CP)):
             if fp_index == i:
@@ -143,7 +164,7 @@ def getIndexLesserWhileDivByCP(ld, cp):
     for i in range(1, len(ld)):
         # omit 0 because is undefined
         if cp[i] != 0:
-            if (resultIndex == -1) or (ld[i]/cp[i] < ld[resultIndex]/cp[resultIndex]):
+            if (resultIndex == -1) or (ld[i] / cp[i] < ld[resultIndex] / cp[resultIndex]):
                 resultIndex = i
     return resultIndex
 
