@@ -108,70 +108,56 @@ def main():
 
 def startSimplexIterations(matrix, vnBNumber, H, RD):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
-    if isRowPositive(matrix[0], vnBNumber):
-        # then you have the best possible outcome
-        print("FINISHED")
-        return
-    else:
-        #   TODO: check if this is still valid(?)
-        #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
-        cp_index = getIndexForLessN(matrix[0], vnBNumber)
-        CP = matrix[:, cp_index]
-        LD = matrix[:, len(matrix[0]) - 1]
-        print(matrix)
-        print("CP")
-        print(cp_index)
-        print(CP)
-        print("LD")
-        print(LD)
-        #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
-        #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
-        #   This index is the FILA PIVOTE
-        fp_index = getIndexLesserWhileDivByCP(LD, CP)
+    while True:
+        if isRowPositive(matrix[0], len(matrix[0])):
+            # then you have the best possible outcome
+            print("FINISHED")
+            break
+        else:
+            #   TODO: check if this is still valid(?)
+            #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+            cp_index = getIndexForLessN(matrix[0], len(matrix[0]))
+            CP = matrix[:, cp_index]
+            LD = matrix[:, len(matrix[0]) - 1]
+            #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
+            #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
+            #   This index is the FILA PIVOTE
+            fp_index = getIndexLesserWhileDivByCP(LD, CP)
 
-        # @TODO: if the fp_index == -1 then you don't have more iterations, the result is not acotado
-        if fp_index == -1:
-            print("NO ACOTADO")
-            return
+            # @TODO: if the fp_index == -1 then you don't have more iterations, the result is not acotado
+            if fp_index == -1:
+                print("NO ACOTADO")
+                break
 
-        print(fp_index)
-        FP = matrix[fp_index]
-        print("FP")
-        print(FP)
-        #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the numero pivote
-        NP = matrix[fp_index][cp_index]
-        print("NP")
-        print(NP)
-        entrante = H[cp_index + 1]
-        saliente = RD[fp_index]
-        response = f'VB entrante: {entrante}, VB saliente: {saliente}, Número Pivot: {NP}'
-        # print estado
-        # print estado
-        # print respuesta parcial
-        print(response)
-        # variable basica que sale lp_index
-        # Now set the all CP to 0 except the fp_index, fp_index = 1
-        # then operación de reglón: all the FP need to be / NP
-        # CP already has the reference
-        for i in range(len(FP)):
-            FP[i] = FP[i] / NP
-        print(matrix)
+            FP = matrix[fp_index]
+            #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the numero pivote
+            NP = matrix[fp_index][cp_index]
+            entrante = H[cp_index + 1]
+            saliente = RD[fp_index]
+            response = f'VB entrante: {entrante}, VB saliente: {saliente}, Número Pivot: {NP}'
+            print(response)
+            # variable basica que sale lp_index
+            # Now set the all CP to 0 except the fp_index, fp_index = 1
+            # then operación de reglón: all the FP need to be / NP
+            # CP already has the reference
+            for i in range(len(FP)):
+                FP[i] = FP[i] / NP
+            # not calculate the rest of the rows
+            # for all rows
+            oldCP = numpy.array(CP, copy=True)
+            for i in range(len(matrix)):
+                # if not row pivote
+                if i != fp_index:
+                    currentRow = matrix[i]
+                    for j in range(len(matrix[i])):
+                        if oldCP[i] > 0:
+                            currentRow[j] = currentRow[j] - \
+                                (abs(oldCP[i]) * FP[j])
+                        else:
+                            currentRow[j] = currentRow[j] + \
+                                (abs(oldCP[i]) * FP[j])
 
-        # not calculate the rest of the rows
-        # for all rows
-        oldCP = numpy.array(CP, copy=True)
-        for i in range(len(matrix)):
-            # if not row pivote
-            if i != fp_index:
-                currentRow = matrix[i]
-                for j in range(len(matrix[i])):
-                    if oldCP[i] > 0:
-                        currentRow[j] = currentRow[j] - (abs(oldCP[i]) * FP[j])
-                    else:
-                        currentRow[j] = currentRow[j] + (abs(oldCP[i]) * FP[j])
-
-        print(matrix)
-        return
+            print(matrix)
 
 
 def getIndexLesserWhileDivByCP(ld, cp):
