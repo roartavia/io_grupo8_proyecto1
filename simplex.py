@@ -85,16 +85,17 @@ def main():
     # ---------------------------------------------------------
     if listProblemDescription[0] == '0':
         print("simplex")
-        startSimplexIterations(initialMatrix, numberDesicionVars, headers, rowsDescription)
-    if listProblemDescription[0] == '1':
+        startSimplexIterations(
+            initialMatrix, numberDesicionVars, headers, rowsDescription)
+    elif listProblemDescription[0] == '1':
         print("Gran M")
         if listProblemDescription[1] == 'max':
             print("max")
-        if listProblemDescription[1]=="min":
+        if listProblemDescription[1] == "min":
             print("min")
         else:
             print("invalid optimization method")
-    if listProblemDescription[0] == '2':
+    elif listProblemDescription[0] == '2':
         print("2 fases")
     else:
         print("invalid entered method ")
@@ -127,6 +128,12 @@ def startSimplexIterations(matrix, vnBNumber, H, RD):
         #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
         #   This index is the FILA PIVOTE
         fp_index = getIndexLesserWhileDivByCP(LD, CP)
+
+        # @TODO: if the fp_index == -1 then you don't have more iterations, the result is not acotado
+        if fp_index == -1:
+            print("NO ACOTADO")
+            return
+
         print(fp_index)
         FP = matrix[fp_index]
         print("FP")
@@ -149,22 +156,32 @@ def startSimplexIterations(matrix, vnBNumber, H, RD):
         for i in range(len(FP)):
             FP[i] = FP[i] / NP
         print(matrix)
-        for i in range(len(CP)):
-            if fp_index == i:
-                # print a 1
-                CP[i] = 1
-            else:
-                CP[i] = 0
+
+        # not calculate the rest of the rows
+        # for all rows
+        oldCP = numpy.array(CP, copy=True)
+        for i in range(len(matrix)):
+            # if not row pivote
+            if i != fp_index:
+                currentRow = matrix[i]
+                for j in range(len(matrix[i])):
+                    if oldCP[i] > 0:
+                        currentRow[j] = currentRow[j] - (abs(oldCP[i]) * FP[j])
+                    else:
+                        currentRow[j] = currentRow[j] + (abs(oldCP[i]) * FP[j])
+
         print(matrix)
         return
 
 
 def getIndexLesserWhileDivByCP(ld, cp):
+    # TODO: can happen its a SOLUCION DEGENERADA
+    # TODO: can happen its a NO HAY VARIABLES ACOTADAS
     resultIndex = -1
     for i in range(1, len(ld)):
         # omit 0 because is undefined
-        if cp[i] != 0:
-            if (resultIndex == -1) or (ld[i] / cp[i] < ld[resultIndex] / cp[resultIndex]):
+        if cp[i] > 0:
+            if (resultIndex == -1) or (ld[i] / cp[i] < ld[resultIndex]/cp[resultIndex]):
                 resultIndex = i
     return resultIndex
 
