@@ -74,24 +74,15 @@ def main():
     for j in range(numberRestrictions):
         rowsDescription.append("x" + str(i + j))
 
-    someTestingText = getPrintableMatrix(
-        headers, rowsDescription, initialMatrix)
-    # print(someTestingText)
-    # writeToFile(someTestingText, solutionFileName)
-
-    # startSimplexIterations(                                            #puede borrarse
-    # initialMatrix, numberDesicionVars, headers, rowsDescription)
-
-    # ---------------------------------------------------------
     if listProblemDescription[0] == '0':
-        print("simplex")
+        # TODO: we can't use this method when restrictions are != <=
         startSimplexIterations(
-            initialMatrix, numberDesicionVars, headers, rowsDescription)
+            initialMatrix, numberDesicionVars, headers, rowsDescription, solutionFileName)
     elif listProblemDescription[0] == '1':
         print("Gran M")
         if listProblemDescription[1] == 'max':
             print("max")
-        if listProblemDescription[1] == "min":
+        elif listProblemDescription[1] == "min":
             print("min")
         else:
             print("invalid optimization method")
@@ -100,17 +91,23 @@ def main():
     else:
         print("invalid entered method ")
 
-    # -------------------------------------------------------
 
-
-# VnBNumber - number of variables no basicas
-
-
-def startSimplexIterations(matrix, vnBNumber, H, RD):
+def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
+    estado = 0
+    writeToFile(f'Estado: {estado}', outputLocation)
+    # estado
+    # matrix
+    str_matrix = getPrintableMatrix(
+        H, RD, matrix)
+    writeToFile(str_matrix, outputLocation)
+
+    # Start the iterations
     while True:
+        estado += 1
         if isRowPositive(matrix[0], len(matrix[0])):
             # then you have the best possible outcome
+            # TODO: you can give the final answer in here
             print("FINISHED")
             break
         else:
@@ -126,7 +123,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD):
 
             # @TODO: if the fp_index == -1 then you don't have more iterations, the result is not acotado
             if fp_index == -1:
-                print("NO ACOTADO")
+                writeToFile("NO ACOTADO", outputLocation)
                 break
 
             FP = matrix[fp_index]
@@ -135,7 +132,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD):
             entrante = H[cp_index + 1]
             saliente = RD[fp_index]
             response = f'VB entrante: {entrante}, VB saliente: {saliente}, Número Pivot: {NP}'
-            print(response)
+
             # variable basica que sale lp_index
             # Now set the all CP to 0 except the fp_index, fp_index = 1
             # then operación de reglón: all the FP need to be / NP
@@ -157,12 +154,35 @@ def startSimplexIterations(matrix, vnBNumber, H, RD):
                             currentRow[j] = currentRow[j] + \
                                 (abs(oldCP[i]) * FP[j])
 
-            print(matrix)
+            # response
+            writeToFile(response, outputLocation)
+            writeToFile(f'Estado {estado}', outputLocation)
+            # TODO: remember to update the RD, with the variable entrante
+            str_matrix = getPrintableMatrix(
+                H, RD, matrix)
+            writeToFile(str_matrix, outputLocation)
+            writeToFile(
+                f'Respuesta Parcial: {getPartialAnwser(matrix, vnBNumber)}', outputLocation)
+
+
+def formatFloatToPrint(num):
+    return "{:.2f}".format(num)
+
+
+def getPartialAnwser(matrix, end):
+    response = formatFloatToPrint(matrix[0][0])
+    # use only the variables de desicion
+    for i in range(1, end):
+        response += "," + formatFloatToPrint(matrix[0][i])
+    # Now the LD col
+    LD = matrix[:, len(matrix[0]) - 1]
+    for i in range(1, len(LD)):
+        response += "," + formatFloatToPrint(LD[i])
+    return f'U = {formatFloatToPrint(LD[0])},({response})'
 
 
 def getIndexLesserWhileDivByCP(ld, cp):
     # TODO: can happen its a SOLUCION DEGENERADA
-    # TODO: can happen its a NO HAY VARIABLES ACOTADAS
     resultIndex = -1
     for i in range(1, len(ld)):
         # omit 0 because is undefined
@@ -196,6 +216,7 @@ def displayHelp():
 
 
 def writeToFile(content, fileName):
+    print(content)
     if os.path.exists(fileName):
         append_write = 'a'  # append if already exists
     else:
@@ -250,7 +271,7 @@ def getPrintableMatrix(headers, rowsDescr, content):
         contentToPrint += rowInfo + tabChar
         currentContentRow = content[i]
         for contentItem in currentContentRow:
-            contentToPrint += str(contentItem) + tabChar
+            contentToPrint += formatFloatToPrint(contentItem) + tabChar
         contentToPrint += enterChar
     return contentToPrint
 
