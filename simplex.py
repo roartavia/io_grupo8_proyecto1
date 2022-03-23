@@ -84,17 +84,60 @@ def main():
 
     # ---------------------------------------------------------
     if listProblemDescription[0] == '0':
+        # TODO:simplex
         print("simplex")
         startSimplexIterations(initialMatrix, numberDesicionVars, headers, rowsDescription)
     elif listProblemDescription[0] == '1':
+        # TODO: Gran M
         print("Gran M")
+
+        #print(listCoefficientFnObj) # linea de variables de z
+        #print(listRestrictions)
+        # print(initialMatrix)
+        #*******************************************
+        # TODO:  insert variables according to signs
+        print(listRestrictions)
+        lenthM=0
+        for i in listRestrictions:
+            positionSize =len(i)-2  # asi puedo ver todos los signos
+            if i[positionSize] == '<=':
+                i[positionSize] = "="
+                i.insert(positionSize, 'S')
+
+
+            elif i[positionSize] == '=':
+                i.insert(positionSize, 'A')
+                lenthM += 1
+            elif i[positionSize] == '>=':
+                i[positionSize] = "="
+                i.insert(positionSize, 'A')
+                i.insert(positionSize+1, '-S')
+                lenthM += 1
+            else:
+                print("wrong sign")
+        print(listRestrictions)
+        print(listCoefficientFnObj)
+
+        #----------------------------------------
+        # TODO: insert variables to Z
+
         if listProblemDescription[1] == 'max':
             print("max")
-        elif listProblemDescription[1]=="min":
+            for i in range(lenthM):
+                listCoefficientFnObj.append('-A')
+        elif listProblemDescription[1] == "min":
             print("min")
+            for i in range(lenthM):
+                listCoefficientFnObj.append('A')
         else:
             print("invalid optimization method")
+
+        #---------------------------------------
+        print(listCoefficientFnObj)
+        #print(numberDesicionVars)  esta me va a ayudar con el numero de x
+        #***********************************************
     elif listProblemDescription[0] == '2':
+        # TODO: 2 fase
         print("2 fases")
     else:
         print("invalid entered method ")
