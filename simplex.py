@@ -2,6 +2,7 @@
 import os.path
 import numpy
 import sys
+import cmath
 
 
 def main():
@@ -89,53 +90,68 @@ def main():
         startSimplexIterations(initialMatrix, numberDesicionVars, headers, rowsDescription)
     elif listProblemDescription[0] == '1':
         # TODO: Gran M
-        print("Gran M")
-
-        #print(listCoefficientFnObj) # linea de variables de z
-        #print(listRestrictions)
-        # print(initialMatrix)
-        #*******************************************
-        # TODO:  insert variables according to signs
         print(listRestrictions)
-        lenthM=0
-        for i in listRestrictions:
-            positionSize =len(i)-2  # asi puedo ver todos los signos
-            if i[positionSize] == '<=':
-                i[positionSize] = "="
-                i.insert(positionSize, 'S')
 
+        vecTemp = []
+        lenthU = 0
+        numberOfS = 0
+        numberOfA = 0
 
-            elif i[positionSize] == '=':
-                i.insert(positionSize, 'A')
-                lenthM += 1
-            elif i[positionSize] == '>=':
-                i[positionSize] = "="
-                i.insert(positionSize, 'A')
-                i.insert(positionSize+1, '-S')
-                lenthM += 1
-            else:
-                print("wrong sign")
-        print(listRestrictions)
-        print(listCoefficientFnObj)
-
-        #----------------------------------------
-        # TODO: insert variables to Z
-
-        if listProblemDescription[1] == 'max':
-            print("max")
-            for i in range(lenthM):
-                listCoefficientFnObj.append('-A')
+        if listProblemDescription[1] == 'max':  # determina el signo
+            Msing = -1
         elif listProblemDescription[1] == "min":
-            print("min")
-            for i in range(lenthM):
-                listCoefficientFnObj.append('A')
+            Msing = 1
         else:
             print("invalid optimization method")
 
-        #---------------------------------------
+        for i in range(numberDesicionVars + 1):
+            vecTemp.append(complex(0, 0))  # lista para realizar los calculos de la M
+
+        for x in range(numberDesicionVars):  # coloca los valores no imaginarios
+            vecTemp[x] = int(listCoefficientFnObj[x]) * -1
+
+        for i in listRestrictions:
+
+            positionSize = len(i) - 2
+
+            if i[positionSize] == '<=':
+                i[positionSize] = "="
+                i.insert(positionSize, 'S')
+                numberOfS += 1
+
+            elif i[positionSize] == '=':
+                i.insert(positionSize, 'A')
+                lenthU += 1
+                numberOfA += 1
+
+                # agrega los valores imaginarios en Z
+                for x in range(numberDesicionVars):  # ciclo para recorrer de acuerdo a la cantidad de x
+                    vecTemp[x] += complex(0, int(i[x]) * Msing)
+                vecTemp[-1] += (complex(0, int(i[-1])))
+
+            elif i[positionSize] == '>=':
+
+                # transforma las restricicones
+                i[positionSize] = "="
+                i.insert(positionSize, 'A')
+                i.insert(positionSize + 1, '-S')
+                lenthU += 1
+                numberOfA += 1
+                numberOfS += 1
+
+                # Agrega los numeros imaginarios y la S
+                for x in range(numberDesicionVars):
+                    vecTemp[x] += complex(0, int(i[x]) * Msing)
+                vecTemp[-1] += (complex(0, int(i[-1])))
+                vecTemp.insert(-1, complex(1, 1))
+            else:
+                print("wrong sign")
+
+        print(listRestrictions)
+        listCoefficientFnObj = vecTemp
         print(listCoefficientFnObj)
-        #print(numberDesicionVars)  esta me va a ayudar con el numero de x
-        #***********************************************
+
+
     elif listProblemDescription[0] == '2':
         # TODO: 2 fase
         print("2 fases")
