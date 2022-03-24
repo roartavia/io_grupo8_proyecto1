@@ -4,6 +4,13 @@ import numpy
 import sys
 
 
+class BASH_COLORS:
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
 def main():
     # @TODO: implement the [-h] flag to run the help flow
     if len(sys.argv) <= 1:
@@ -96,19 +103,17 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
     estado = 0
     writeToFile(f'Estado: {estado}', outputLocation)
-    # estado
-    # matrix
     str_matrix = getPrintableMatrix(
         H, RD, matrix)
     writeToFile(str_matrix, outputLocation)
-
+    partial_answer = ""
     # Start the iterations
     while True:
         estado += 1
+
         if isRowPositive(matrix[0], len(matrix[0])):
-            # then you have the best possible outcome
-            # TODO: you can give the final answer in here
-            print("FINISHED")
+            writeToFile(
+                f"The final answer is {partial_answer}", outputLocation, BASH_COLORS.OKGREEN)
             break
         else:
             #   TODO: check if this is still valid(?)
@@ -123,7 +128,8 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
 
             # @TODO: if the fp_index == -1 then you don't have more iterations, the result is not acotado
             if fp_index == -1:
-                writeToFile("NO ACOTADO", outputLocation)
+                writeToFile("There is not possible answer because the problem is not bounded",
+                            outputLocation, BASH_COLORS.FAIL)
                 break
 
             FP = matrix[fp_index]
@@ -157,27 +163,40 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
             # response
             writeToFile(response, outputLocation)
             writeToFile(f'Estado {estado}', outputLocation)
-            # TODO: remember to update the RD, with the variable entrante
+            # Remove the saliente and add the entrante
+            RD[fp_index] = entrante
             str_matrix = getPrintableMatrix(
                 H, RD, matrix)
             writeToFile(str_matrix, outputLocation)
+            partial_answer = getPartialAnwser(matrix, H, RD)
             writeToFile(
-                f'Respuesta Parcial: {getPartialAnwser(matrix, vnBNumber)}', outputLocation)
+                f'Respuesta Parcial: {partial_answer}', outputLocation)
 
 
 def formatFloatToPrint(num):
     return "{:.2f}".format(num)
 
 
-def getPartialAnwser(matrix, end):
-    response = formatFloatToPrint(matrix[0][0])
-    # use only the variables de desicion
-    for i in range(1, end):
-        response += "," + formatFloatToPrint(matrix[0][i])
-    # Now the LD col
+def getPartialAnwser(matrix, h, rd):
+    # 0 in the values that are in H but not in RD
+    # LD/RD value when RD
     LD = matrix[:, len(matrix[0]) - 1]
-    for i in range(1, len(LD)):
-        response += "," + formatFloatToPrint(LD[i])
+    rows_solution = []
+    # from 1 to ignore the VB header to -1 to ignore the LD
+    for i in range(1, len(h) - 1):
+        if h[i] in rd:
+            # calculate
+            pos_x = rd.index(h[i])
+            value_ld = LD[pos_x]
+            value_intersection = matrix[pos_x][i - 1]
+            rows_solution.append(value_ld / value_intersection)
+        else:
+            rows_solution.append(0)
+
+    response = formatFloatToPrint(rows_solution[0])
+    # use only the variables de desicion
+    for i in range(1, len(rows_solution)):
+        response += "," + formatFloatToPrint(rows_solution[i])
     return f'U = {formatFloatToPrint(LD[0])},({response})'
 
 
@@ -211,12 +230,19 @@ def isRowPositive(row, end):
 
 
 def displayHelp():
-    # TODO: diplay the correct message
-    print("here the help")
+    print('\n')
+    print(f"{BASH_COLORS.WARNING}To run the program you need to pass the file with the correct input format as a parameter{BASH_COLORS.ENDC}")
+    print("Example:")
+    print('\n')
+    print(f"{BASH_COLORS.OKGREEN}python simplex.py filename.txt{BASH_COLORS.ENDC}")
+    print('\n')
 
 
-def writeToFile(content, fileName):
-    print(content)
+def writeToFile(content, fileName, color=""):
+    if color == "":
+        print(content)
+    else:
+        print(f"{color}{content}{BASH_COLORS.ENDC}")
     if os.path.exists(fileName):
         append_write = 'a'  # append if already exists
     else:
