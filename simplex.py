@@ -292,7 +292,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
             # then operación de reglón: all the FP need to be / NP
             # CP already has the reference
             for i in range(len(FP)):
-                FP[i] = FP[i] / NP
+                FP[i] = round(FP[i] / NP, 6)
             # not calculate the rest of the rows
             # for all rows
             oldCP = numpy.array(CP, copy=True)
@@ -302,11 +302,11 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
                     currentRow = matrix[i]
                     for j in range(len(matrix[i])):
                         if oldCP[i] > 0:
-                            currentRow[j] = currentRow[j] - \
-                                (abs(oldCP[i]) * FP[j])
+                            currentRow[j] = round(currentRow[j] -
+                                                  (abs(oldCP[i]) * FP[j]), 6)
                         else:
-                            currentRow[j] = currentRow[j] + \
-                                (abs(oldCP[i]) * FP[j])
+                            currentRow[j] = round(currentRow[j] +
+                                                  (abs(oldCP[i]) * FP[j]), 6)
 
             # response
             writeToFile(response, outputLocation)
@@ -356,7 +356,7 @@ def getIndexLesserWhileDivByCP(ld, cp):
     for i in range(1, len(ld)):
         # omit 0 because is undefined
         if cp[i] > 0:
-            if (resultIndex == -1) or (ld[i] / cp[i] < ld[resultIndex]/cp[resultIndex]):
+            if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex]/cp[resultIndex], 6)):
                 resultIndex = i
     return resultIndex
 
@@ -366,7 +366,7 @@ def getIndexForLessN(row, end=-1):
     if end == -1:
         end = len(row)
     for i in range(1, end):
-        if row[i] < row[resultIndex]:
+        if round(row[i], 6) < round(row[resultIndex], 6):
             resultIndex = i
     return resultIndex
 
