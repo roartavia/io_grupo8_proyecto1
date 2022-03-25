@@ -90,54 +90,70 @@ def main():
         startSimplexIterations(initialMatrix, numberDesicionVars, headers, rowsDescription)
     elif listProblemDescription[0] == '1':
         # TODO: Gran M
-        print(listRestrictions)
+        #print(listRestrictions)
 
         vecTemp = []
-        lenthU = 0
         numberOfS = 0
         numberOfA = 0
+        numberOfS2 = 0  # variable de apoyo
 
-        if listProblemDescription[1] == 'max':  # determina el signo
+        # cuenta la cantida de variables nuevas
+        for i in listRestrictions:
+            positionSize = len(i) - 2
+            if i[positionSize] == '<=':
+                numberOfS += 1
+            elif i[positionSize] == '=':
+                numberOfA += 1
+            elif i[positionSize] == '>=':
+                numberOfS +=1
+                numberOfA += 1
+
+        #Agrega la cantida de variables nuevas a Z y las restricciones
+
+        for i in range(numberDesicionVars+numberOfS+numberOfA + 1):
+            vecTemp.append(complex(0, 0))
+        for i in listRestrictions:
+            for x in range(numberOfS+numberOfA):
+                i.insert(-2, '0')
+
+        # determina el signo de M
+        if listProblemDescription[1] == 'max':
             Msing = -1
         elif listProblemDescription[1] == "min":
             Msing = 1
         else:
             print("invalid optimization method")
 
-        for i in range(numberDesicionVars + 1):
-            vecTemp.append(complex(0, 0))  # lista para realizar los calculos de la M
-
-        for x in range(numberDesicionVars):  # coloca los valores no imaginarios
+        # coloca los valores no imaginarios dentro de Z
+        for x in range(numberDesicionVars):
             vecTemp[x] = int(listCoefficientFnObj[x]) * -1
 
-        for i in listRestrictions:
+        numberOfA=0   # se reutiliza la variable
 
+        # ciclo que asigna los valores de las nuevas variables a las restricciones
+        for i in listRestrictions:
             positionSize = len(i) - 2
 
             if i[positionSize] == '<=':
-                i[positionSize] = "="
-                i.insert(positionSize, 'S')
-                numberOfS += 1
+                i[numberDesicionVars+numberOfS2]='1'
+                numberOfS2 += 1
 
             elif i[positionSize] == '=':
-                i.insert(positionSize, 'A')
-                lenthU += 1
+                i[numberDesicionVars + numberOfA+numberOfS] = '1'
                 numberOfA += 1
 
                 # agrega los valores imaginarios en Z
-                for x in range(numberDesicionVars):  # ciclo para recorrer de acuerdo a la cantidad de x
+                for x in range(numberDesicionVars):
                     vecTemp[x] += complex(0, int(i[x]) * Msing)
                 vecTemp[-1] += (complex(0, int(i[-1])))
 
             elif i[positionSize] == '>=':
 
-                # transforma las restricicones
-                i[positionSize] = "="
-                i.insert(positionSize, 'A')
-                i.insert(positionSize + 1, '-S')
-                lenthU += 1
+                i[numberDesicionVars + numberOfS2] = '1'
+                numberOfS2 += 1
+
+                i[numberDesicionVars + numberOfA + numberOfS] = '1'
                 numberOfA += 1
-                numberOfS += 1
 
                 # Agrega los numeros imaginarios y la S
                 for x in range(numberDesicionVars):
@@ -147,11 +163,42 @@ def main():
             else:
                 print("wrong sign")
 
+
+        #borra los = de las restricciones
+        for i in listRestrictions:
+            i.pop(-2)
+
+        #transforma el el tipo de las restricciones
+        for i in listRestrictions:
+            for x in range(len(i)):
+                i[x] = float(i[x])
+
         print(listRestrictions)
         listCoefficientFnObj = vecTemp
         print(listCoefficientFnObj)
 
+        #****************************** creacion de matriz
+        Mheader=["VB"]
+        for i in range(numberDesicionVars):
+            Mheader.append("X" + str(i + 1))
+        for i in range(numberOfS):
+            Mheader.append("S" + str(i+1))
+        for i in range(numberOfA):
+            Mheader.append("A" + str(i+1))
+        headers.append("LD")
+        print(Mheader)
 
+        MrowsDescription = ["U"]
+        for i in range(numberRestrictions):
+            MrowsDescription.append("X" + str(i + 1+numberDesicionVars))
+        print(MrowsDescription)
+
+        matrixBigM=buildMatrixForBigM(listRestrictions,listCoefficientFnObj)
+        print(matrixBigM)
+
+        #startSimplexIterations(matrixBigM, numberDesicionVars, Mheader, MrowsDescription)
+
+        #********************************
     elif listProblemDescription[0] == '2':
         # TODO: 2 fase
         print("2 fases")
@@ -216,6 +263,25 @@ def startSimplexIterations(matrix, vnBNumber, H, RD):
                 CP[i] = 0
         print(matrix)
         return
+
+
+#---------------------------------
+def buildMatrixForBigM(restrictions, fnsObjetivo):
+    cols = len(fnsObjetivo)
+    # because the fnObjetivo
+    rows = len(restrictions) + 1
+    matrix = numpy.zeros([rows, cols]).astype(complex)
+    # add fn headers
+    for col_index in range(len(fnsObjetivo)):
+        matrix[0][col_index] = fnsObjetivo[col_index]
+    # add content
+    for row_index in range(len(restrictions)):
+        restriction = restrictions[row_index]
+        for col_index in range(len(restriction)):
+            matrix[row_index+1][col_index] = restriction[col_index]
+    return matrix
+#--------------------------------
+
 
 
 def getIndexLesserWhileDivByCP(ld, cp):
