@@ -12,6 +12,13 @@ class BASH_COLORS:
     ENDC = '\033[0m'
 
 
+class BASH_COLORS:
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
 def main():
     # @TODO: implement the [-h] flag to run the help flow
     if len(sys.argv) <= 1:
