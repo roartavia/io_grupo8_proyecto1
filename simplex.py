@@ -194,9 +194,9 @@ def main():
         print(MrowsDescription)
 
         matrixBigM=buildMatrixForBigM(listRestrictions,listCoefficientFnObj)
-        print(matrixBigM)
+        #print(matrixBigM)
 
-        #startSimplexIterations(matrixBigM, numberDesicionVars, Mheader, MrowsDescription)
+        startSimplexIterations(matrixBigM, numberDesicionVars, Mheader, MrowsDescription)
 
         #********************************
     elif listProblemDescription[0] == '2':
