@@ -109,6 +109,10 @@ def main():
         numberOfS = 0
         numberOfA = 0
         numberOfS2 = 0  # variable de apoyo
+        MrowsDescription = ["U"]
+
+        amountofS=1 # se usan para colocar las variables en el vector de la izquierda de la matriz
+        amountofA=1
 
         # cuenta la cantida de variables nuevas
         for i in listRestrictions:
@@ -151,9 +155,16 @@ def main():
                 i[numberDesicionVars+numberOfS2] = '1'
                 numberOfS2 += 1
 
+                MrowsDescription.append("S" + str(amountofS))
+                amountofS += 1
+
+
             elif i[positionSize] == '=':
                 i[numberDesicionVars + numberOfA+numberOfS] = '1'
                 numberOfA += 1
+
+                MrowsDescription.append("A" + str(amountofA))
+                amountofA += 1
 
                 # agrega los valores imaginarios en Z
                 for x in range(numberDesicionVars):
@@ -167,6 +178,9 @@ def main():
 
                 i[numberDesicionVars + numberOfA + numberOfS] = '1'
                 numberOfA += 1
+
+                MrowsDescription.append("A" + str(amountofA))
+                amountofA += 1
 
                 # Agrega los numeros imaginarios y la S
                 for x in range(numberDesicionVars):
@@ -200,9 +214,6 @@ def main():
         Mheader.append("LD")
         print(Mheader)
 
-        MrowsDescription = ["U"]
-        for i in range(numberRestrictions):
-            MrowsDescription.append("X" + str(i + 1+numberDesicionVars))
         print(MrowsDescription)
 
         matrixBigM = buildMatrixForBigM(listRestrictions, listCoefficientFnObj)
@@ -460,7 +471,7 @@ def getPartialAnwser(matrix, h, rd):
     return f'U = {formatFloatToPrint(LD[0])},({response})'
 
 
-# ---------------------------------
+
 def buildMatrixForBigM(restrictions, fnsObjetivo):
     cols = len(fnsObjetivo)
     # because the fnObjetivo
@@ -475,7 +486,7 @@ def buildMatrixForBigM(restrictions, fnsObjetivo):
         for col_index in range(len(restriction)):
             matrix[row_index+1][col_index] = restriction[col_index]
     return matrix
-# --------------------------------
+
 
 
 def getIndexLesserWhileDivByCP(ld, cp):
@@ -493,8 +504,10 @@ def getIndexLesserWhileDivByCP(ld, cp):
 
 def getIndexForLessN(row, end=-1):
     resultIndex = 0
+
     if end == -1:
         end = len(row)
+
     for i in range(1, end):
         if round(row[i], 6) < round(row[resultIndex], 6):
             resultIndex = i
