@@ -3,9 +3,10 @@
 __author__ = "Ruy Fuentes, Rodolfo Artavia, Esteban Aguilera"
 
 import sys
+import cmath
 import numpy
-from pickle import TRUE
 import os.path
+from pickle import TRUE
 from fileinput import filename
 
 
@@ -94,13 +95,125 @@ def main():
             startSimplexIterations(
                 initialMatrix, numberDesicionVars, headers, rowsDescription, solutionFileName)
     elif listProblemDescription[0] == '1':
-        print("Gran M")
+        # TODO: Gran M
+        vecTemp = []
+        numberOfS = 0
+        numberOfA = 0
+        numberOfS2 = 0  # support variables
+        MrowsDescription = ["U"]
+
+        amountofS = 1  # places the variables in the left vector of the matrix
+        amountofA = 1
+
+        # count the number of new variables
+        for i in listRestrictions:
+            positionSize = len(i) - 2
+            if i[positionSize] == '<=':
+                numberOfS += 1
+            elif i[positionSize] == '=':
+                numberOfA += 1
+            elif i[positionSize] == '>=':
+                numberOfS += 1
+                numberOfA += 1
+            else:
+                print("wrong sing")
+                quit()
+
+        # Add the number of new variables to Z and the constraints
+
+        for i in range(numberDesicionVars + numberOfS + numberOfA + 1):
+            vecTemp.append(complex(0, 0))
+        for i in listRestrictions:
+            for x in range(numberOfS + numberOfA):
+                i.insert(-2, '0')
+
+        # determine the sign of M
         if listProblemDescription[1] == 'max':
-            print("max")
+            Msing = -1
         elif listProblemDescription[1] == "min":
-            print("min")
+            Msing = 1
         else:
             print("invalid optimization method")
+            quit()
+
+        # put the non-imaginary values into Z
+        for x in range(numberDesicionVars):
+            vecTemp[x] = int(listCoefficientFnObj[x]) * -1
+
+        numberOfA = 0  # variable is reused
+
+        # loop that assigns the values of the new variables to the constraints
+        for i in listRestrictions:
+            positionSize = len(i) - 2
+
+            if i[positionSize] == '<=':
+                i[numberDesicionVars + numberOfS2] = '1'
+                numberOfS2 += 1
+
+                MrowsDescription.append("S" + str(amountofS))
+                amountofS += 1
+
+            elif i[positionSize] == '=':
+                i[numberDesicionVars + numberOfA + numberOfS] = '1'
+                numberOfA += 1
+
+                MrowsDescription.append("A" + str(amountofA))
+                amountofA += 1
+
+                # add the imaginary values in the objective function
+                for x in range(numberDesicionVars):
+                    vecTemp[x] += complex(0, int(i[x]) * Msing)
+                vecTemp[-1] += (complex(0, int(i[-1])))
+
+            elif i[positionSize] == '>=':
+
+                i[numberDesicionVars + numberOfS2] = '1'
+                numberOfS2 += 1
+
+                i[numberDesicionVars + numberOfA + numberOfS] = '1'
+                numberOfA += 1
+
+                MrowsDescription.append("A" + str(amountofA))
+                amountofA += 1
+
+                # Add the imaginary numbers and the S in the objective function
+                for x in range(numberDesicionVars):
+                    vecTemp[x] += complex(0, int(i[x]) * Msing)
+                vecTemp[-1] += (complex(0, int(i[-1])))
+                vecTemp.insert(-1, complex(1, 1))
+
+        # delete the = from constraints
+        for i in listRestrictions:
+            i.pop(-2)
+
+        # transforms the data type of the constraints
+        for i in listRestrictions:
+            for x in range(len(i)):
+                i[x] = float(i[x])
+
+        print(listRestrictions)
+        listCoefficientFnObj = vecTemp
+        print(listCoefficientFnObj)
+
+        #  Matrix M creation
+        Mheader = ["VB"]
+        for i in range(numberDesicionVars):
+            Mheader.append("X" + str(i + 1))
+        for i in range(numberOfS):
+            Mheader.append("S" + str(i + 1))
+        for i in range(numberOfA):
+            Mheader.append("A" + str(i + 1))
+        Mheader.append("LD")
+        print(Mheader)
+
+        print(MrowsDescription)
+
+        matrixBigM = buildMatrixForBigM(listRestrictions, listCoefficientFnObj)
+        # print(matrixBigM)
+
+        startSimplexIterationsWithM(
+            matrixBigM, numberDesicionVars, Mheader, MrowsDescription, solutionFileName)
+
     elif listProblemDescription[0] == '2':
         # TODO implement the min: min is a max * -1
         IS_MIN = False
@@ -145,7 +258,7 @@ def main():
                 editDescriptionList(listRestrictions, i)
             else:
                 # then is a '=' restriction is = add artifical var
-                newVars.append(f"a{indexVar+numberDesicionVars+1}")
+                newVars.append(f"a{indexVar + numberDesicionVars + 1}")
                 indexesWithAs.append(i)
                 # TODO: when is min use a +1
                 if IS_MIN:
@@ -246,9 +359,9 @@ def main():
 
                 RU = matrix[0]
                 for col_index in range(len(RU)):
-                    for complex in indexesWithMoreThan0InU:
-                        row_index = complex[0]
-                        static = complex[1]
+                    for complex_2 in indexesWithMoreThan0InU:
+                        row_index = complex_2[0]
+                        static = complex_2[1]
                         RU[col_index] -= matrix[row_index][col_index] * static
             writeToFile("FASE 2", solutionFileName)
             startSimplexIterations(
@@ -279,7 +392,7 @@ def buildMatrixForTwoFases(restrictions, fnsObjetivo):
     for row_index in range(len(restrictions)):
         restriction = restrictions[row_index]
         for col_index in range(len(restriction)):
-            matrix[row_index+1][col_index] = restriction[col_index]
+            matrix[row_index + 1][col_index] = restriction[col_index]
     return matrix
 
 # Replaces the values of each non basic variable
@@ -289,10 +402,10 @@ def editDescriptionList(listRestrictions, i, value="1"):
     for j in range(len(listRestrictions)):
         if j != i:
             listRestrictions[j].insert(
-                len(listRestrictions[j])-2, "0")
+                len(listRestrictions[j]) - 2, "0")
         else:
             listRestrictions[j].insert(
-                len(listRestrictions[j])-2, value)
+                len(listRestrictions[j]) - 2, value)
 
 
 # This is the Core method which starts the Simplex iterations as its name suggests,
@@ -319,7 +432,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
     while True:
         estado += 1
 
-        if isRowPositive(matrix[0], len(matrix[0])-1):
+        if isRowPositive(matrix[0], len(matrix[0]) - 1):
             writeToFile(
                 f"Solución final es: {partial_answer}", outputLocation, BASH_COLORS.OKGREEN)
             # for this check the vars in H that are not in rd are != 0, if there is one 0, there are more solutions
@@ -335,10 +448,10 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
 
                 writeToFile(getFinalAnswer(matrix, H, RD,
                             vnBNumber, isMin), outputLocation)
-                break
+            break
         else:
-            #   First get the less row[0][i] with i<VnBNumber - That is the PIVOT COLUMN
-            cp_index = getIndexForLessN(matrix[0], len(matrix[0])-1)
+            #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+            cp_index = getIndexForLessN(matrix[0], len(matrix[0]) - 1)
             CP = matrix[:, cp_index]
             LD = matrix[:, len(matrix[0]) - 1]
             #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
@@ -373,16 +486,114 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
                     currentRow = matrix[i]
                     for j in range(len(matrix[i])):
                         if oldCP[i] > 0:
-                            currentRow[j] = round(currentRow[j] -
-                                                  (abs(oldCP[i]) * FP[j]), 6)
+                            currentRow[j] = round(
+                                currentRow[j] - (abs(oldCP[i]) * FP[j]), 6)
                         else:
-                            currentRow[j] = round(currentRow[j] +
-                                                  (abs(oldCP[i]) * FP[j]), 6)
+                            currentRow[j] = round(
+                                currentRow[j] + (abs(oldCP[i]) * FP[j]), 6)
 
             # response
             writeToFile(response, outputLocation)
             writeToFile(f'Estado {estado}', outputLocation)
             # Remove the out coming and add the incoming
+            RD[fp_index] = entrante
+            str_matrix = getPrintableMatrix(
+                H, RD, matrix)
+            writeToFile(str_matrix, outputLocation)
+            partial_answer = getPartialAnwser(matrix, H, RD)
+            writeToFile(
+                f'Respuesta Parcial: {partial_answer}', outputLocation)
+
+
+def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
+    # Check if all the row[0][i] with i<VnBNumber  are >= 0
+    matrix[0][len(matrix[0])-1] *= -1
+    estado = 0
+    writeToFile(f'Estado: {estado}', outputLocation)
+    str_matrix = getPrintableMatrix(
+        H, RD, matrix)
+    writeToFile(str_matrix, outputLocation)
+
+    # TODO: missing the INITIAL ANSWER
+
+    partial_answer = ""
+    # Start the iterations
+    while True:
+        estado += 1
+
+        if isRowPositive(matrix[0], len(matrix[0]) - 1):
+            writeToFile(
+                f"The final answer is {partial_answer}", outputLocation, BASH_COLORS.OKGREEN)
+            # TODO: check if there is MULTIPLE SOLUTIONS - if yes then do one more iteration
+            # for this check the vars in H that are not in rd are != 0, if there is one 0, if is the case
+            # then do JUST ONE iteration more to get the second solution - es demostrar que hay soluciones multiples
+            # no necesariamente mostrar todas esas posibles soluciones
+            # TODO: missing give the answer like:
+            # x1 = n, x2 = n2, etc.. U = Total, ignoring the variables artificiales
+            break
+        else:
+            #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+            cp_index = getIndexForLessN(matrix[0], len(matrix[0]) - 1)
+            CP = matrix[:, cp_index]
+            LD = matrix[:, len(matrix[0]) - 1]
+            #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
+            #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
+            #   This index is the FILA PIVOTE
+            fp_index = getIndexLesserWhileDivByCP(LD, CP, outputLocation)
+
+            if fp_index == -1:
+                writeToFile("There is not possible answer because the problem is not bounded, U es no acotada",
+                            outputLocation, BASH_COLORS.FAIL)
+                break
+
+            FP = matrix[fp_index]
+            #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the numero pivote
+            NP = matrix[fp_index][cp_index]
+            entrante = H[cp_index + 1]
+            saliente = RD[fp_index]
+            response = f'VB entrante: {entrante}, VB saliente: {saliente}, Número Pivot: {NP}'
+
+            # variable basica que sale lp_index
+            # Now set the all CP to 0 except the fp_index, fp_index = 1
+            # then operación de reglón: all the FP need to be / NP
+            # CP already has the reference
+            for i in range(len(FP)):
+                if NP.imag == 0:
+                    temp = complex(FP[i].real / NP.real, 0)
+                else:
+                    temp = complex(FP[i].real / NP.real, FP[i].imag / NP.imag)
+                temp = complex(round(temp.real, 6), round(temp.imag, 6))
+                FP[i] = temp
+
+            # not calculate the rest of the rows
+            # for all rows
+            oldCP = numpy.array(CP, copy=True)
+            for i in range(len(matrix)):
+                # if not row pivote
+                if i != fp_index:
+                    # i es el pivote, j es el la fila, FP es fila pivote, de la segunda tabla y esta bien
+                    currentRow = matrix[i]
+                    # CurrentRow muestra cada celda de matriz
+                    for j in range(len(matrix[i])):
+
+                        temp = complex(
+                            oldCP[i].real * FP[j].real, abs(oldCP[i].imag) * FP[j].imag)
+                        temp = complex(round(temp.real, 3),
+                                       round(temp.imag, 3))
+                        # print('temporal')
+                        # print(temp)
+                        if oldCP[i].real > 0:  # oldCP es la columna de la fila pasada, esta bien
+                            currentRow[j] = round(currentRow[j] - temp, 3)
+                            #currentRow[j] = round(currentRow[j] -(abs(oldCP[i]) * FP[j]), 6)
+
+                        else:
+                            currentRow[j] = round(currentRow[j] + temp, 3)
+                            #currentRow[j] = round(currentRow[j] +(abs(oldCP[i]) * FP[j]), 6)
+
+            # response
+            writeToFile(response, outputLocation)
+            writeToFile(f'Estado {estado}', outputLocation)
+            # Remove the saliente and add the entrante
             RD[fp_index] = entrante
             str_matrix = getPrintableMatrix(
                 H, RD, matrix)
@@ -421,6 +632,48 @@ def getPartialAnwser(matrix, h, rd):
     return f'U = {formatFloatToPrint(LD[0])},({response})'
 
 
+def buildMatrixForBigM(restrictions, fnsObjetivo):
+    cols = len(fnsObjetivo)
+    # because the fnObjetivo
+    rows = len(restrictions) + 1
+    matrix = numpy.zeros([rows, cols]).astype(complex)
+    # add fn headers
+    for col_index in range(len(fnsObjetivo)):
+        matrix[0][col_index] = fnsObjetivo[col_index]
+    # add content
+    for row_index in range(len(restrictions)):
+        restriction = restrictions[row_index]
+        for col_index in range(len(restriction)):
+            matrix[row_index + 1][col_index] = restriction[col_index]
+    return matrix
+
+
+def getIndexLesserWhileDivByCP(ld, cp, filename):
+    # TODO: can happen its a SOLUCION DEGENERADA
+    # This happen when there is n results that are less and and equal
+    # just notify la solucion va a ser degenerada, pero seguir las iteraciones
+    resultIndex = -1
+    for i in range(1, len(ld)):
+        # omit 0 because is undefined
+        if type(cp[i]) is numpy.complex128:
+            if cp[i].imag != 0:
+                if (resultIndex == -1) or (round(ld[i].imag / cp[i].imag, 6) < round(ld[resultIndex].imag / cp[resultIndex].imag, 6)):
+                    resultIndex = i
+                # TODO: missing if the M is the same
+            else:
+                if (resultIndex == -1) or (round(ld[i].real / cp[i].real, 6) < round(ld[resultIndex].real / cp[resultIndex].real, 6)):
+                    resultIndex = i
+        else:
+            if cp[i] > 0:
+                if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex] / cp[resultIndex], 6)):
+                    # check if is ==, if yes then is a SOLUCION DEGENERADA.
+                    if resultIndex != -1 and (round(ld[i] / cp[i], 6) == round(ld[resultIndex]/cp[resultIndex], 6)):
+                        writeToFile(
+                            "Se encontraron dos valores posibles de variable saliente. Por lo tanto se dará una solución DEGENEDARA", filename)
+                    resultIndex = i
+    return resultIndex
+
+
 def getFinalAnswer(matrix, h, rd, vNum, isMin):
     LD = matrix[:, len(matrix[0]) - 1]
     u = LD[0]
@@ -445,37 +698,37 @@ def getFinalAnswer(matrix, h, rd, vNum, isMin):
     return f'U = {formatFloatToPrint(u)} con {strSolution}'
 
 
-def getIndexLesserWhileDivByCP(ld, cp, filename):
-    resultIndex = -1
-    for i in range(1, len(ld)):
-        # omit 0 because is undefined
-        if cp[i] > 0:
-            if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex]/cp[resultIndex], 6)):
-                # check if is ==, if yes then is a SOLUCION DEGENERADA.
-                if resultIndex != -1 and (round(ld[i] / cp[i], 6) == round(ld[resultIndex]/cp[resultIndex], 6)):
-                    writeToFile(
-                        "Se encontraron dos valores posibles de variable saliente. Por lo tanto se dará una solución DEGENEDARA", filename)
-                resultIndex = i
-    return resultIndex
-
-
 # Subtracts the lesser value from a row, this for the simplex method logic
 # which requires to find the lesser value in order to locate de pivot column
 def getIndexForLessN(row, end=-1):
     resultIndex = 0
+
     if end == -1:
         end = len(row)
+
     for i in range(1, end):
-        if round(row[i], 6) < round(row[resultIndex], 6):
-            resultIndex = i
+        if type(row[i]) is numpy.complex128:
+            if row[i].imag != 0:
+                if round(row[i].imag, 6) < round(row[resultIndex].imag, 6):
+                    resultIndex = i
+            else:
+                if round(row[i].real, 6) < round(row[resultIndex].real, 6):
+                    resultIndex = i
+        else:
+            if round(row[i], 6) < round(row[resultIndex], 6):
+                resultIndex = i
     return resultIndex
 
 
 def isRowPositive(row, end):
     for i in range(0, end):
         item = row[i]
-        if round(item, 3) < 0.0:
-            return False
+        if type(item) is numpy.complex128:
+            if item.real < 0:
+                return False
+        else:
+            if round(item, 3) < 0.0:
+                return False
     return True
 
 
