@@ -176,7 +176,7 @@ def main():
 
         # remove the coeficient
         # now you need to check if there are positive artificial vars and remove them
-        # by subtracting the coefficients - lines of artificial variable
+        # by substract the coeficientes - reglones que esa variable artificial
         newCoeficientes = listCoefficientFnObj.copy()
         for i in range(numberDesicionVars):
             newCoeficientes[i] = 0.0
@@ -347,14 +347,9 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
             cp_index = getIndexForLessN(matrix[0], len(matrix[0])-1)
             CP = matrix[:, cp_index]
             LD = matrix[:, len(matrix[0]) - 1]
-            #   Then for each item in LD
-            #   (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Pivot Column)
-            #   Get the index of CP that is lesser of all the divisions (ignore the LD when value is 0)
-            #   This index is the PIVOT ROW
-            #   Then for each item in LD
-            #   (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Pivot Column)
-            #   Get the index of CP that is lesser of all the divisions (ignore the LD when value is 0)
-            #   This index is the PIVOT ROW
+            #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
+            #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
+            #   This index is the FILA PIVOTE
             fp_index = getIndexLesserWhileDivByCP(LD, CP, outputLocation)
 
             if fp_index == -1:
@@ -454,10 +449,6 @@ def getFinalAnswer(matrix, h, rd, vNum, isMin):
     for i in range(len(rows_solution)):
         strSolution += f"x{i + 1} = {formatFloatToPrint(rows_solution[i])} "
     return f'U = {formatFloatToPrint(u)} con {strSolution}'
-
-# Subtracts the lesser value from the LD column where the division is already been applied,
-# So the algorithm can continue iterating in case it doesnt find
-# and optimal solution and the solution is not "DEGENERADA"
 
 
 def getIndexLesserWhileDivByCP(ld, cp, filename):
