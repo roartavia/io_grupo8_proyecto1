@@ -101,20 +101,19 @@ def main():
             print("min")
         else:
             print("invalid entered method")
+
     elif listProblemDescription[0] == '1':
         # TODO: Gran M
-        # print(listRestrictions)
-
         vecTemp = []
         numberOfS = 0
         numberOfA = 0
-        numberOfS2 = 0  # variable de apoyo
+        numberOfS2 = 0  # support variables
         MrowsDescription = ["U"]
 
-        amountofS=1 # se usan para colocar las variables en el vector de la izquierda de la matriz
-        amountofA=1
+        amountofS = 1  # places the variables in the left vector of the matrix
+        amountofA = 1
 
-        # cuenta la cantida de variables nuevas
+        # count the number of new variables
         for i in listRestrictions:
             positionSize = len(i) - 2
             if i[positionSize] == '<=':
@@ -124,35 +123,39 @@ def main():
             elif i[positionSize] == '>=':
                 numberOfS += 1
                 numberOfA += 1
+            else:
+                print("wrong sing")
+                quit()
 
-        # Agrega la cantida de variables nuevas a Z y las restricciones
+        # Add the number of new variables to Z and the constraints
 
-        for i in range(numberDesicionVars+numberOfS+numberOfA + 1):
+        for i in range(numberDesicionVars + numberOfS + numberOfA + 1):
             vecTemp.append(complex(0, 0))
         for i in listRestrictions:
-            for x in range(numberOfS+numberOfA):
+            for x in range(numberOfS + numberOfA):
                 i.insert(-2, '0')
 
-        # determina el signo de M
+        # determine the sign of M
         if listProblemDescription[1] == 'max':
             Msing = -1
         elif listProblemDescription[1] == "min":
             Msing = 1
         else:
             print("invalid optimization method")
+            quit()
 
-        # coloca los valores no imaginarios dentro de Z
+        # put the non-imaginary values into Z
         for x in range(numberDesicionVars):
             vecTemp[x] = int(listCoefficientFnObj[x]) * -1
 
-        numberOfA = 0   # se reutiliza la variable
+        numberOfA = 0  # variable is reused
 
-        # ciclo que asigna los valores de las nuevas variables a las restricciones
+        # loop that assigns the values of the new variables to the constraints
         for i in listRestrictions:
             positionSize = len(i) - 2
 
             if i[positionSize] == '<=':
-                i[numberDesicionVars+numberOfS2] = '1'
+                i[numberDesicionVars + numberOfS2] = '1'
                 numberOfS2 += 1
 
                 MrowsDescription.append("S" + str(amountofS))
@@ -160,13 +163,13 @@ def main():
 
 
             elif i[positionSize] == '=':
-                i[numberDesicionVars + numberOfA+numberOfS] = '1'
+                i[numberDesicionVars + numberOfA + numberOfS] = '1'
                 numberOfA += 1
 
                 MrowsDescription.append("A" + str(amountofA))
                 amountofA += 1
 
-                # agrega los valores imaginarios en Z
+                # add the imaginary values in the objective function
                 for x in range(numberDesicionVars):
                     vecTemp[x] += complex(0, int(i[x]) * Msing)
                 vecTemp[-1] += (complex(0, int(i[-1])))
@@ -182,19 +185,17 @@ def main():
                 MrowsDescription.append("A" + str(amountofA))
                 amountofA += 1
 
-                # Agrega los numeros imaginarios y la S
+                # Add the imaginary numbers and the S in the objective function
                 for x in range(numberDesicionVars):
                     vecTemp[x] += complex(0, int(i[x]) * Msing)
                 vecTemp[-1] += (complex(0, int(i[-1])))
                 vecTemp.insert(-1, complex(1, 1))
-            else:
-                print("wrong sign")
 
-        # borra los = de las restricciones
+        # delete the = from constraints
         for i in listRestrictions:
             i.pop(-2)
 
-        # transforma el el tipo de las restricciones
+        # transforms the data type of the constraints
         for i in listRestrictions:
             for x in range(len(i)):
                 i[x] = float(i[x])
@@ -203,14 +204,14 @@ def main():
         listCoefficientFnObj = vecTemp
         print(listCoefficientFnObj)
 
-        # ****************************** creacion de matriz
+        #  Matrix M creation
         Mheader = ["VB"]
         for i in range(numberDesicionVars):
             Mheader.append("X" + str(i + 1))
         for i in range(numberOfS):
-            Mheader.append("S" + str(i+1))
+            Mheader.append("S" + str(i + 1))
         for i in range(numberOfA):
-            Mheader.append("A" + str(i+1))
+            Mheader.append("A" + str(i + 1))
         Mheader.append("LD")
         print(Mheader)
 
@@ -222,7 +223,7 @@ def main():
         startSimplexIterations(
             matrixBigM, numberDesicionVars, Mheader, MrowsDescription, solutionFileName)
 
-        # ********************************
+
 
     elif listProblemDescription[0] == '2':
         print("2 fases")
@@ -244,17 +245,17 @@ def main():
             des = restriction[len(restriction) - 2]
             if des == "<=":
                 # add basic var
-                newVars.append(f"x{indexVar+numberDesicionVars+1}")
+                newVars.append(f"x{indexVar + numberDesicionVars + 1}")
                 listCoefficientFnObj.append("0")
                 editDescriptionList(listRestrictions, i)
             elif des == ">=":
                 # restriction is => add artifical var and a excess var
                 # the excess var is equal a -1
-                newVars.append(f"s{indexVar+numberDesicionVars+1}")
+                newVars.append(f"s{indexVar + numberDesicionVars + 1}")
                 listCoefficientFnObj.append("0")
                 editDescriptionList(listRestrictions, i, "-1")
                 indexVar += 1
-                newVars.append(f"a{indexVar+numberDesicionVars+1}")
+                newVars.append(f"a{indexVar + numberDesicionVars + 1}")
                 indexesWithAs.append(i)
                 # add the articial var to the objetivo as well? yes because you need to do the
                 # operation of reglones
@@ -263,7 +264,7 @@ def main():
                 editDescriptionList(listRestrictions, i)
             else:
                 # then is a '=' restriction is = add artifical var
-                newVars.append(f"a{indexVar+numberDesicionVars+1}")
+                newVars.append(f"a{indexVar + numberDesicionVars + 1}")
                 indexesWithAs.append(i)
                 # TODO: when is min use a +1
                 listCoefficientFnObj.append("-1")
@@ -349,7 +350,7 @@ def buildMatrixForTwoFases(restrictions, fnsObjetivo):
     for row_index in range(len(restrictions)):
         restriction = restrictions[row_index]
         for col_index in range(len(restriction)):
-            matrix[row_index+1][col_index] = restriction[col_index]
+            matrix[row_index + 1][col_index] = restriction[col_index]
     return matrix
 
 
@@ -357,10 +358,10 @@ def editDescriptionList(listRestrictions, i, value="1"):
     for j in range(len(listRestrictions)):
         if j != i:
             listRestrictions[j].insert(
-                len(listRestrictions[j])-2, "0")
+                len(listRestrictions[j]) - 2, "0")
         else:
             listRestrictions[j].insert(
-                len(listRestrictions[j])-2, value)
+                len(listRestrictions[j]) - 2, value)
 
 
 def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
@@ -378,7 +379,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
     while True:
         estado += 1
 
-        if isRowPositive(matrix[0], len(matrix[0])-1):
+        if isRowPositive(matrix[0], len(matrix[0]) - 1):
             writeToFile(
                 f"The final answer is {partial_answer}", outputLocation, BASH_COLORS.OKGREEN)
             # TODO: check if there is MULTIPLE SOLUTIONS - if yes then do one more iteration
@@ -390,7 +391,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
             break
         else:
             #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
-            cp_index = getIndexForLessN(matrix[0], len(matrix[0])-1)
+            cp_index = getIndexForLessN(matrix[0], len(matrix[0]) - 1)
             CP = matrix[:, cp_index]
             LD = matrix[:, len(matrix[0]) - 1]
             #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
@@ -422,14 +423,19 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
             for i in range(len(matrix)):
                 # if not row pivote
                 if i != fp_index:
-                    currentRow = matrix[i]
-                    for j in range(len(matrix[i])):
-                        if oldCP[i] > 0:
-                            currentRow[j] = round(currentRow[j] -
-                                                  (abs(oldCP[i]) * FP[j]), 6)
+                    currentRow = matrix[i]                      # i es el pivote, j es el la fila, FP es fila pivote, de la segunda tabla y esta bien
+                    for j in range(len(matrix[i])):             # CurrentRow muestra cada celda de matriz
+
+                        temp = complex(oldCP[i].real * FP[j].real, abs(oldCP[i].imag) * FP[j].imag)
+                        temp = complex(round(temp.real,3), round(temp.imag,3))
+                        #print('temporal')
+                        #print(temp)
+                        if oldCP[i] > 0:  # oldCP es la columna de la fila pasada, esta bien
+                            #currentRow[j]= round(currentRow[j] -temp,3)
+                            currentRow[j] = round(currentRow[j] -(abs(oldCP[i]) * FP[j]), 6)
                         else:
-                            currentRow[j] = round(currentRow[j] +
-                                                  (abs(oldCP[i]) * FP[j]), 6)
+                            #currentRow[j] = round(currentRow[j] + temp,3)
+                            currentRow[j] = round(currentRow[j] +(abs(oldCP[i]) * FP[j]), 6)
 
             # response
             writeToFile(response, outputLocation)
@@ -471,7 +477,6 @@ def getPartialAnwser(matrix, h, rd):
     return f'U = {formatFloatToPrint(LD[0])},({response})'
 
 
-
 def buildMatrixForBigM(restrictions, fnsObjetivo):
     cols = len(fnsObjetivo)
     # because the fnObjetivo
@@ -484,9 +489,8 @@ def buildMatrixForBigM(restrictions, fnsObjetivo):
     for row_index in range(len(restrictions)):
         restriction = restrictions[row_index]
         for col_index in range(len(restriction)):
-            matrix[row_index+1][col_index] = restriction[col_index]
+            matrix[row_index + 1][col_index] = restriction[col_index]
     return matrix
-
 
 
 def getIndexLesserWhileDivByCP(ld, cp):
@@ -497,7 +501,7 @@ def getIndexLesserWhileDivByCP(ld, cp):
     for i in range(1, len(ld)):
         # omit 0 because is undefined
         if cp[i] > 0:
-            if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex]/cp[resultIndex], 6)):
+            if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex] / cp[resultIndex], 6)):
                 resultIndex = i
     return resultIndex
 
@@ -524,7 +528,8 @@ def isRowPositive(row, end):
 
 def displayHelp():
     print('\n')
-    print(f"{BASH_COLORS.WARNING}To run the program you need to pass the file with the correct input format as a parameter{BASH_COLORS.ENDC}")
+    print(
+        f"{BASH_COLORS.WARNING}To run the program you need to pass the file with the correct input format as a parameter{BASH_COLORS.ENDC}")
     print("Example:")
     print('\n')
     print(f"{BASH_COLORS.OKGREEN}python simplex.py filename.txt{BASH_COLORS.ENDC}")
