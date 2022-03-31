@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+from fileinput import filename
 import os.path
+from pickle import TRUE
 import numpy
 import sys
 
@@ -33,7 +35,6 @@ def main():
         print("File does not exist.")
         return
 
-    # @TODO: we are expecting the file to have a perfect format (?) - add error handling
     # Start the parsing
     f = open(fileName, "r")
     lines = f.readlines()
@@ -85,14 +86,16 @@ def main():
         for j in range(numberRestrictions):
             rowsDescription.append("x" + str(i + j))
 
-        if listProblemDescription[1] == 'max':
+        if listProblemDescription[1] == "min":
+            # Transform to max
+            IS_MIN = True
+            for col in initialMatrix:
+                col[0] = col[0] * -1
+            startSimplexIterations(
+                initialMatrix, numberDesicionVars, headers, rowsDescription, solutionFileName, True)
+        else:
             startSimplexIterations(
                 initialMatrix, numberDesicionVars, headers, rowsDescription, solutionFileName)
-        elif listProblemDescription[1] == "min":
-            # TODO
-            print("min")
-        else:
-            print("invalid entered method")
     elif listProblemDescription[0] == '1':
         print("Gran M")
         if listProblemDescription[1] == 'max':
@@ -102,10 +105,12 @@ def main():
         else:
             print("invalid optimization method")
     elif listProblemDescription[0] == '2':
-        print("2 fases")
         # TODO implement the min: min is a max * -1
-        # This is happy path for the max
-
+        IS_MIN = False
+        if listProblemDescription[1] == "min":
+            # TODO
+            # do the conversion * -1 and save the flag to do the * -1 when give the answer
+            IS_MIN = True
         # add the xn needed for each <=
         # add the yn (variable artificial) needed for each =
         # add the  -xn variable de exceso and the yn variable artificial needed for each >=
@@ -121,37 +126,41 @@ def main():
             des = restriction[len(restriction) - 2]
             if des == "<=":
                 # add basic var
-                newVars.append(f"x{indexVar+numberDesicionVars+1}")
+                newVars.append(f"x{indexVar+numberDesicionVars + 1}")
                 listCoefficientFnObj.append("0")
                 editDescriptionList(listRestrictions, i)
             elif des == ">=":
                 # restriction is => add artifical var and a excess var
                 # the excess var is equal a -1
-                newVars.append(f"s{indexVar+numberDesicionVars+1}")
+                newVars.append(f"s{indexVar+numberDesicionVars + 1}")
                 listCoefficientFnObj.append("0")
                 editDescriptionList(listRestrictions, i, "-1")
                 indexVar += 1
-                newVars.append(f"a{indexVar+numberDesicionVars+1}")
+                newVars.append(f"a{indexVar+numberDesicionVars + 1}")
                 indexesWithAs.append(i)
                 # add the articial var to the objetivo as well? yes because you need to do the
                 # operation of reglones
                 # TODO: when is min use a +1
-                listCoefficientFnObj.append("-1")
+                if IS_MIN:
+                    listCoefficientFnObj.append("1")
+                else:
+                    listCoefficientFnObj.append("-1")
                 editDescriptionList(listRestrictions, i)
             else:
                 # then is a '=' restriction is = add artifical var
                 newVars.append(f"a{indexVar+numberDesicionVars+1}")
                 indexesWithAs.append(i)
                 # TODO: when is min use a +1
-                listCoefficientFnObj.append("-1")
+                if IS_MIN:
+                    listCoefficientFnObj.append("1")
+                else:
+                    listCoefficientFnObj.append("-1")
+                # listCoefficientFnObj.append("-1")
                 editDescriptionList(listRestrictions, i)
             indexVar += 1
         # Now for each newVar with a you need to edit the function objetivo
         # when is a MAX function then use -Mx5..
 
-        print(headers)
-        print(newVars)
-        print(listRestrictions)
         # now you can remove the des - the last item is always the LD
         for res in listRestrictions:
             del res[len(res) - 2]
@@ -159,16 +168,13 @@ def main():
                 res[i] = float(res[i])
         for i in range(len(listCoefficientFnObj)):
             listCoefficientFnObj[i] = float(listCoefficientFnObj[i]) * -1
-        print(listRestrictions)
-        print("Fn")
+            if IS_MIN:
+                listCoefficientFnObj[i] = listCoefficientFnObj[i] * -1
 
-        print(listCoefficientFnObj)
-        print(indexesWithAs)
-        # remove the coeficientes normales
-        # TODO: check this doesnt save the reference
+        # remove the coeficient
         # now you need to check if there are positive artificial vars and remove them
         # by substract the coeficientes - reglones que esa variable artificial
-        newCoeficientes = listCoefficientFnObj
+        newCoeficientes = listCoefficientFnObj.copy()
         for i in range(numberDesicionVars):
             newCoeficientes[i] = 0.0
         # LD in 0
@@ -178,7 +184,6 @@ def main():
         operationNewRowsFor0.append(newCoeficientes)
         for index in indexesWithAs:
             operationNewRowsFor0.append(listRestrictions[index])
-        print(operationNewRowsFor0)
         newRow = []
 
         for col_index in range(len(operationNewRowsFor0[0])):
@@ -186,7 +191,6 @@ def main():
             for row_index in range(1, len(operationNewRowsFor0)):
                 newResult -= operationNewRowsFor0[row_index][col_index]
             newRow.append(newResult)
-        print(newRow)
         # now for each col do col[0] - col[n] - col[n]
         matrix = buildMatrixForTwoFases(listRestrictions, newRow)
 
@@ -199,18 +203,65 @@ def main():
             if "s" not in posible_rd:
                 RD.append(posible_rd)
 
-        print(matrix)
-        print(headers)
-        print(RD)
+        writeToFile("FASE 1", solutionFileName)
         startSimplexIterations(
-            matrix, numberDesicionVars, headers, RD, solutionFileName)
-        # [0.4,0.5]
-        # [0.3,0.1,<=,2.7]
-        # [0.5,0.5,=,6]
-        # [0.6,0.4,>=,6]
+            matrix, numberDesicionVars, headers, RD, solutionFileName, IS_MIN)
 
+        # now from the headers, remove the artificial vars
+        # as well the matrix
+        # from 1 to ignore the VB header
+        i = 1
+        while i < len(headers):
+            if 'a' in headers[i]:
+                # remove this i-1 from the matrix and the i from the headers
+                del headers[i]
+                # print(headers)
+                matrix = numpy.delete(matrix, i-1, 1)
+            else:
+                i += 1
+
+        # now set the fnObj from the beginning
+        # if all the fnObj are positive you need to make an extra step to clean the positives
+        # is the same step of reglones removing from col[0] - the reglón of that variable
+        # the easier way to see it is
+        # for each RD check the value in the U, and if is more than 0 then this RD need to be substract from U to make a new
+        # U row without this possible value
+        # FIRST add the fnOBJ for second fase
+        for bv_index in range(numberDesicionVars):
+            matrix[0][bv_index] = listCoefficientFnObj[bv_index]
+        # what rows you need to proccess
+        indexesWithMoreThan0InU = []
+        NO_TIENE_SOLUCION_FACTIBLE = False
+        for i in range(1, len(RD)):
+            # check this RD[i] is positive in headers
+            # get what is the index in the headers, this is i+1
+            if RD[i] in headers:
+                h_col_index = headers.index(RD[i]) - 1
+                value_in_matrix = round(matrix[0][h_col_index], 6)
+                if value_in_matrix > 0.0:
+                    indexesWithMoreThan0InU.append([i, value_in_matrix])
+            else:
+                NO_TIENE_SOLUCION_FACTIBLE = True
+                break
+        if not NO_TIENE_SOLUCION_FACTIBLE:
+            if len(indexesWithMoreThan0InU) > 0:
+                newRow = []
+
+                RU = matrix[0]
+                for col_index in range(len(RU)):
+                    for complex in indexesWithMoreThan0InU:
+                        row_index = complex[0]
+                        static = complex[1]
+                        RU[col_index] -= matrix[row_index][col_index] * static
+            writeToFile("FASE 2", solutionFileName)
+            startSimplexIterations(
+                matrix, numberDesicionVars, headers, RD, solutionFileName, IS_MIN)
+        else:
+            writeToFile("El problema no tiene solución factible",
+                        solutionFileName)
     else:
-        print("invalid entered method ")
+        print("Método invalido")
+        displayHelp()
 
 
 def buildMatrixForTwoFases(restrictions, fnsObjetivo):
@@ -240,15 +291,13 @@ def editDescriptionList(listRestrictions, i, value="1"):
                 len(listRestrictions[j])-2, value)
 
 
-def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
+def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
     estado = 0
     writeToFile(f'Estado: {estado}', outputLocation)
     str_matrix = getPrintableMatrix(
         H, RD, matrix)
     writeToFile(str_matrix, outputLocation)
-
-    # TODO: missing the INITIAL ANSWER
 
     partial_answer = ""
     # Start the iterations
@@ -257,14 +306,21 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
 
         if isRowPositive(matrix[0], len(matrix[0])-1):
             writeToFile(
-                f"The final answer is {partial_answer}", outputLocation, BASH_COLORS.OKGREEN)
-            # TODO: check if there is MULTIPLE SOLUTIONS - if yes then do one more iteration
-            # for this check the vars in H that are not in rd are != 0, if there is one 0, if is the case
-            # then do JUST ONE iteration more to get the second solution - es demostrar que hay soluciones multiples
-            # no necesariamente mostrar todas esas posibles soluciones
-            # TODO: missing give the answer like:
-            # x1 = n, x2 = n2, etc.. U = Total, ignoring the variables artificiales
-            break
+                f"Solución final es: {partial_answer}", outputLocation, BASH_COLORS.OKGREEN)
+            # for this check the vars in H that are not in rd are != 0, if there is one 0, there are more solutions
+            hasMultiples = False
+            for i in range(vnBNumber + 1, len(H)-1):
+                if H[i] not in RD:
+                    if matrix[0][i-1] == 0:
+                        hasMultiples = True
+                        break
+            if hasMultiples:
+                writeToFile("Este problema tiene soluciones multiples",
+                            outputLocation, BASH_COLORS.WARNING)
+
+                writeToFile(getFinalAnswer(matrix, H, RD,
+                            vnBNumber, isMin), outputLocation)
+                break
         else:
             #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
             cp_index = getIndexForLessN(matrix[0], len(matrix[0])-1)
@@ -273,10 +329,10 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
             #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
             #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
             #   This index is the FILA PIVOTE
-            fp_index = getIndexLesserWhileDivByCP(LD, CP)
+            fp_index = getIndexLesserWhileDivByCP(LD, CP, outputLocation)
 
             if fp_index == -1:
-                writeToFile("There is not possible answer because the problem is not bounded, U es no acotada",
+                writeToFile("No hay solución ya que U NO está ACOTADA",
                             outputLocation, BASH_COLORS.FAIL)
                 break
 
@@ -348,15 +404,40 @@ def getPartialAnwser(matrix, h, rd):
     return f'U = {formatFloatToPrint(LD[0])},({response})'
 
 
-def getIndexLesserWhileDivByCP(ld, cp):
-    # TODO: can happen its a SOLUCION DEGENERADA
-    # This happen when there is n results that are less and and equal
-    # just notify la solucion va a ser degenerada, pero seguir las iteraciones
+def getFinalAnswer(matrix, h, rd, vNum, isMin):
+    LD = matrix[:, len(matrix[0]) - 1]
+    u = LD[0]
+    if isMin:
+        u = u * -1
+    rows_solution = []
+    # from 1 to ignore the VB header to -1 to ignore the LD
+    for i in range(1, len(h) - 1):
+        if h[i] in rd:
+            # calculate
+            pos_x = rd.index(h[i])
+            value_ld = LD[pos_x]
+            value_intersection = matrix[pos_x][i - 1]
+            rows_solution.append(value_ld / value_intersection)
+        else:
+            rows_solution.append(0)
+    # clean it
+    rows_solution = rows_solution[:vNum]
+    strSolution = ""
+    for i in range(len(rows_solution)):
+        strSolution += f"x{i + 1} = {formatFloatToPrint(rows_solution[i])} "
+    return f'U = {formatFloatToPrint(u)} con {strSolution}'
+
+
+def getIndexLesserWhileDivByCP(ld, cp, filename):
     resultIndex = -1
     for i in range(1, len(ld)):
         # omit 0 because is undefined
         if cp[i] > 0:
             if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex]/cp[resultIndex], 6)):
+                # check if is ==, if yes then is a SOLUCION DEGENERADA.
+                if resultIndex != -1 and (round(ld[i] / cp[i], 6) == round(ld[resultIndex]/cp[resultIndex], 6)):
+                    writeToFile(
+                        "Se encontraron dos valores posibles de variable saliente. Por lo tanto se dará una solución DEGENEDARA", filename)
                 resultIndex = i
     return resultIndex
 
@@ -374,15 +455,15 @@ def getIndexForLessN(row, end=-1):
 def isRowPositive(row, end):
     for i in range(0, end):
         item = row[i]
-        if item < 0:
+        if round(item, 3) < 0.0:
             return False
     return True
 
 
 def displayHelp():
     print('\n')
-    print(f"{BASH_COLORS.WARNING}To run the program you need to pass the file with the correct input format as a parameter{BASH_COLORS.ENDC}")
-    print("Example:")
+    print(f"{BASH_COLORS.WARNING}Para ejecutar el programa, debe pasar el archivo con el formato de entrada correcto como parámetro {BASH_COLORS.ENDC}")
+    print("Ejemplo:")
     print('\n')
     print(f"{BASH_COLORS.OKGREEN}python simplex.py filename.txt{BASH_COLORS.ENDC}")
     print('\n')
@@ -437,7 +518,7 @@ def buildMatrix(coeficientesFn, coeficientesRestr, problemDescr):
 
 def getPrintableMatrix(headers, rowsDescr, content):
     contentToPrint = ""
-    tabChar = "\t"
+    tabChar = "\t\t"
     enterChar = "\n"
     for header in headers:
         contentToPrint += header + tabChar
