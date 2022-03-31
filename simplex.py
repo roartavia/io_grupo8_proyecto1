@@ -220,7 +220,7 @@ def main():
         matrixBigM = buildMatrixForBigM(listRestrictions, listCoefficientFnObj)
         # print(matrixBigM)
 
-        startSimplexIterations(
+        startSimplexIterationsWithM(
             matrixBigM, numberDesicionVars, Mheader, MrowsDescription, solutionFileName)
 
 
@@ -423,18 +423,11 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
             for i in range(len(matrix)):
                 # if not row pivote
                 if i != fp_index:
-                    currentRow = matrix[i]                      # i es el pivote, j es el la fila, FP es fila pivote, de la segunda tabla y esta bien
-                    for j in range(len(matrix[i])):             # CurrentRow muestra cada celda de matriz
-
-                        temp = complex(oldCP[i].real * FP[j].real, abs(oldCP[i].imag) * FP[j].imag)
-                        temp = complex(round(temp.real,3), round(temp.imag,3))
-                        #print('temporal')
-                        #print(temp)
-                        if oldCP[i] > 0:  # oldCP es la columna de la fila pasada, esta bien
-                            #currentRow[j]= round(currentRow[j] -temp,3)
+                    currentRow = matrix[i]
+                    for j in range(len(matrix[i])):
+                        if oldCP[i] > 0:
                             currentRow[j] = round(currentRow[j] -(abs(oldCP[i]) * FP[j]), 6)
                         else:
-                            #currentRow[j] = round(currentRow[j] + temp,3)
                             currentRow[j] = round(currentRow[j] +(abs(oldCP[i]) * FP[j]), 6)
 
             # response
@@ -448,6 +441,101 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
             partial_answer = getPartialAnwser(matrix, H, RD)
             writeToFile(
                 f'Respuesta Parcial: {partial_answer}', outputLocation)
+
+
+def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
+    # Check if all the row[0][i] with i<VnBNumber  are >= 0
+    estado = 0
+    writeToFile(f'Estado: {estado}', outputLocation)
+    str_matrix = getPrintableMatrix(
+        H, RD, matrix)
+    writeToFile(str_matrix, outputLocation)
+
+    # TODO: missing the INITIAL ANSWER
+
+    partial_answer = ""
+    # Start the iterations
+    while True:
+        estado += 1
+
+        if isRowPositive(matrix[0], len(matrix[0]) - 1):
+            writeToFile(
+                f"The final answer is {partial_answer}", outputLocation, BASH_COLORS.OKGREEN)
+            # TODO: check if there is MULTIPLE SOLUTIONS - if yes then do one more iteration
+            # for this check the vars in H that are not in rd are != 0, if there is one 0, if is the case
+            # then do JUST ONE iteration more to get the second solution - es demostrar que hay soluciones multiples
+            # no necesariamente mostrar todas esas posibles soluciones
+            # TODO: missing give the answer like:
+            # x1 = n, x2 = n2, etc.. U = Total, ignoring the variables artificiales
+            break
+        else:
+            #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+            cp_index = getIndexForLessN(matrix[0], len(matrix[0]) - 1)
+            CP = matrix[:, cp_index]
+            LD = matrix[:, len(matrix[0]) - 1]
+            #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
+            #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
+            #   This index is the FILA PIVOTE
+            fp_index = getIndexLesserWhileDivByCP(LD, CP)
+
+            if fp_index == -1:
+                writeToFile("There is not possible answer because the problem is not bounded, U es no acotada",
+                            outputLocation, BASH_COLORS.FAIL)
+                break
+
+            FP = matrix[fp_index]
+            #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the numero pivote
+            NP = matrix[fp_index][cp_index]
+            entrante = H[cp_index + 1]
+            saliente = RD[fp_index]
+            response = f'VB entrante: {entrante}, VB saliente: {saliente}, Número Pivot: {NP}'
+
+            # variable basica que sale lp_index
+            # Now set the all CP to 0 except the fp_index, fp_index = 1
+            # then operación de reglón: all the FP need to be / NP
+            # CP already has the reference
+            for i in range(len(FP)):
+                if NP.imag ==0:
+                    temp = complex(FP[i].real / NP.real,0)
+                else:
+                    temp = complex(FP[i].real / NP.real, FP[i].imag / NP.imag)
+                temp = complex(round(temp.real, 6), round(temp.imag, 6))
+                FP[i] = temp
+
+            # not calculate the rest of the rows
+            # for all rows
+            oldCP = numpy.array(CP, copy=True)
+            for i in range(len(matrix)):
+                # if not row pivote
+                if i != fp_index:
+                    currentRow = matrix[i]                      # i es el pivote, j es el la fila, FP es fila pivote, de la segunda tabla y esta bien
+                    for j in range(len(matrix[i])):             # CurrentRow muestra cada celda de matriz
+
+                        temp = complex(oldCP[i].real * FP[j].real, abs(oldCP[i].imag) * FP[j].imag)
+                        temp = complex(round(temp.real,3), round(temp.imag,3))
+                        #print('temporal')
+                        #print(temp)
+                        if oldCP[i].real > 0:  # oldCP es la columna de la fila pasada, esta bien
+                            currentRow[j]= round(currentRow[j] -temp,3)
+                            #currentRow[j] = round(currentRow[j] -(abs(oldCP[i]) * FP[j]), 6)
+
+                        else:
+                            currentRow[j] = round(currentRow[j] + temp,3)
+                            #currentRow[j] = round(currentRow[j] +(abs(oldCP[i]) * FP[j]), 6)
+
+            # response
+            writeToFile(response, outputLocation)
+            writeToFile(f'Estado {estado}', outputLocation)
+            # Remove the saliente and add the entrante
+            RD[fp_index] = entrante
+            str_matrix = getPrintableMatrix(
+                H, RD, matrix)
+            writeToFile(str_matrix, outputLocation)
+            partial_answer = getPartialAnwser(matrix, H, RD)
+            writeToFile(
+                f'Respuesta Parcial: {partial_answer}', outputLocation)
+
+
 
 
 def formatFloatToPrint(num):
@@ -500,9 +588,14 @@ def getIndexLesserWhileDivByCP(ld, cp):
     resultIndex = -1
     for i in range(1, len(ld)):
         # omit 0 because is undefined
-        if cp[i] > 0:
-            if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex] / cp[resultIndex], 6)):
-                resultIndex = i
+        if type(cp[i]) is numpy.complex128:
+            if cp[i].real > 0:
+                if (resultIndex == -1) or (round(ld[i].real / cp[i].real, 6) < round(ld[resultIndex].real / cp[resultIndex].real, 6)):
+                    resultIndex = i
+        else:
+            if cp[i] > 0:
+                if (resultIndex == -1) or (round(ld[i] / cp[i], 6) < round(ld[resultIndex] / cp[resultIndex], 6)):
+                    resultIndex = i
     return resultIndex
 
 
@@ -513,17 +606,26 @@ def getIndexForLessN(row, end=-1):
         end = len(row)
 
     for i in range(1, end):
-        if round(row[i], 6) < round(row[resultIndex], 6):
-            resultIndex = i
+        if type(row[i]) is numpy.complex128:
+            if round(row[i].real, 6) < round(row[resultIndex].real, 6):
+                resultIndex = i
+        else:
+            if round(row[i], 6) < round(row[resultIndex], 6):
+                resultIndex = i
     return resultIndex
 
 
 def isRowPositive(row, end):
     for i in range(0, end):
         item = row[i]
-        if item < 0:
-            return False
-    return True
+        if type(item) is numpy.complex128:
+            if item.real < 0:
+                return False
+            return True
+        else:
+            if item < 0:
+                return False
+        return True
 
 
 def displayHelp():
