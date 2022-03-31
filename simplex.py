@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """simplex.py: Implementation of Simplex method."""
+__author__ = "Ruy Fuentes, Rodolfo Artavia, Esteban Aguilera"
 
 import sys
 import numpy
 from pickle import TRUE
 import os.path
 from fileinput import filename
-__author__ = "Ruy Fuentes, Rodolfo Artavia, Esteban Aguilera"
 
 
 class BASH_COLORS:
@@ -17,7 +17,6 @@ class BASH_COLORS:
 
 
 def main():
-    # @TODO: implement the [-h] flag to run the help flow
     if len(sys.argv) <= 1:
         displayHelp()
         return
@@ -53,16 +52,12 @@ def main():
     for item in lines[2:]:
         listRestrictions.append(item.strip().split(","))
 
-    # TODO: this iteration is only for max and with all restricitions <= - we need to check if there is >= and = restrictions
-
     # This is a possible way to manage the content
     # For the matrix we only need the content, not the headers
     # the header and first col, we are going to use
-
     # 1. Clean the Objective Fn to be U - (variable decision 1) - (variable decision) 2 = 0
     # NOTE: basic variables = amount of restrictions
     # 2. Now we should turn all restrictions to be = (achive this by adding the basic variables)
-    # TODO: Step 3 and 2 need to be implemented - for now we expect to have the restrictions in the form <=
     # 3. Create matrix
     # cols = number of restrictions + number of variables + 2 (VB & LD)
     # rows = 2 (VB & U) + len(basic variables) @NOTE: basic variables = # of restrictions for now
@@ -70,7 +65,6 @@ def main():
     numberRestrictions = int(listProblemDescription[3])
 
     if listProblemDescription[0] == '0':
-        # TODO: we can't use this method when restrictions are != <=
         # In this case all the restrictions are <=
         numberOfTotalVars = numberDesicionVars + numberRestrictions
         # cols = (amount of total vars) + LD
