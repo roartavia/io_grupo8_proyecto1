@@ -1,9 +1,12 @@
 #!/usr/bin/env python
-from fileinput import filename
-import os.path
-from pickle import TRUE
-import numpy
+"""simplex.py: Implementation of Simplex method."""
+__author__ = "Ruy Fuentes, Rodolfo Artavia, Esteban Aguilera"
+
 import sys
+import numpy
+from pickle import TRUE
+import os.path
+from fileinput import filename
 
 
 class BASH_COLORS:
@@ -14,7 +17,6 @@ class BASH_COLORS:
 
 
 def main():
-    # @TODO: implement the [-h] flag to run the help flow
     if len(sys.argv) <= 1:
         displayHelp()
         return
@@ -24,10 +26,10 @@ def main():
 
     # Read the file, is going to be a format like:
     # 0,max,2,3 - (${method type [0=Simplex, 1=GranM, 2=DosFases]}, ${max or min}, ${decision variables}, ${restriccions #})
-    # 3,5 - (coeficientes de la función objetivo)
-    # 2,1,<=,6 (coeficientes de las restricciones y signo de restricción)
-    # -1,3,<=,9 - (coeficientes de las restricciones y signo de restricción)
-    # 0,1,<=,4 - (coeficientes de las restricciones y signo de restricción)
+    # 3,5 - (Objective Function Coefficient)
+    # 2,1,<=,6 (Restrictions and signs coefficient)
+    # -1,3,<=,9 - (Restrictions and signs coefficient)
+    # 0,1,<=,4 - (Restrictions and signs coefficient)
     fileName = sys.argv[1]
     solutionFileName = os.path.splitext(fileName)[0] + "_solucion.txt"
 
@@ -39,27 +41,23 @@ def main():
     f = open(fileName, "r")
     lines = f.readlines()
 
-    # lines[0] - problem info
+    # lines[0] - Problem info
     listProblemDescription = lines[0].strip().split(",")
-    # lines[1] - coeficientes funcion objetivo
+    # lines[1] - Objective Function Coefficient
     listCoefficientFnObj = lines[1].strip().split(",")
-    # lines[2:] - restricciones
+    # lines[2:] - Restrictions
     # For each line remove the new line char '\n'
     # result: ['2', '1', '<=', '6']
     listRestrictions = []
     for item in lines[2:]:
         listRestrictions.append(item.strip().split(","))
 
-    # TODO: this iteration is only for max and with all restricitions <= - we need to check if there is >= and = restrictions
-
     # This is a possible way to manage the content
     # For the matrix we only need the content, not the headers
     # the header and first col, we are going to use
-
-    # 1. Clean the function objetivo to be U - (variable decision 1) - (variable decision) 2 = 0
+    # 1. Clean the Objective Fn to be U - (variable decision 1) - (variable decision) 2 = 0
     # NOTE: basic variables = amount of restrictions
     # 2. Now we should turn all restrictions to be = (achive this by adding the basic variables)
-    # TODO: Step 3 and 2 need to be implemented - for now we expect to have the restrictions in the form <=
     # 3. Create matrix
     # cols = number of restrictions + number of variables + 2 (VB & LD)
     # rows = 2 (VB & U) + len(basic variables) @NOTE: basic variables = # of restrictions for now
@@ -67,11 +65,10 @@ def main():
     numberRestrictions = int(listProblemDescription[3])
 
     if listProblemDescription[0] == '0':
-        # TODO: we can't use this method when restrictions are != <=
         # In this case all the restrictions are <=
         numberOfTotalVars = numberDesicionVars + numberRestrictions
-        # cols = (amout of total vars) + LD
-        # rows = (amout of restrictions or basic vars) + U
+        # cols = (amount of total vars) + LD
+        # rows = (amount of restrictions or basic vars) + U
         # 3. Create matrix
         initialMatrix = buildMatrix(
             listCoefficientFnObj, listRestrictions, listProblemDescription)
@@ -112,8 +109,8 @@ def main():
             # do the conversion * -1 and save the flag to do the * -1 when give the answer
             IS_MIN = True
         # add the xn needed for each <=
-        # add the yn (variable artificial) needed for each =
-        # add the  -xn variable de exceso and the yn variable artificial needed for each >=
+        # add the yn (artificial variable) needed for each =
+        # add the  -xn excess variable and the yn artificial variable needed for each >=
         headers = ["VB"]
         for i in range(numberDesicionVars):
             headers.append("x" + str(i + 1))
@@ -130,7 +127,7 @@ def main():
                 listCoefficientFnObj.append("0")
                 editDescriptionList(listRestrictions, i)
             elif des == ">=":
-                # restriction is => add artifical var and a excess var
+                # restriction is => add artificial var and a excess var
                 # the excess var is equal a -1
                 newVars.append(f"s{indexVar+numberDesicionVars + 1}")
                 listCoefficientFnObj.append("0")
@@ -138,8 +135,8 @@ def main():
                 indexVar += 1
                 newVars.append(f"a{indexVar+numberDesicionVars + 1}")
                 indexesWithAs.append(i)
-                # add the articial var to the objetivo as well? yes because you need to do the
-                # operation of reglones
+                # add the artificial var to the objective as well? yes because you need to do the
+                # operation of lines (renglones)
                 # TODO: when is min use a +1
                 if IS_MIN:
                     listCoefficientFnObj.append("1")
@@ -158,7 +155,7 @@ def main():
                 # listCoefficientFnObj.append("-1")
                 editDescriptionList(listRestrictions, i)
             indexVar += 1
-        # Now for each newVar with a you need to edit the function objetivo
+        # Now for each newVar with a you need to edit the objective function
         # when is a MAX function then use -Mx5..
 
         # now you can remove the des - the last item is always the LD
@@ -263,6 +260,11 @@ def main():
         print("Método invalido")
         displayHelp()
 
+# Method that receives the array "restrictions" created from the txt file containing the restrictions in
+# an array created with Numpy
+# "fnsObjetivo" which is going to contain the new Objective Function needed for the Two Phases iteration
+# This Method will return the matrix needed to proceed to the Simplex Process
+
 
 def buildMatrixForTwoFases(restrictions, fnsObjetivo):
     cols = len(fnsObjetivo)
@@ -280,6 +282,8 @@ def buildMatrixForTwoFases(restrictions, fnsObjetivo):
             matrix[row_index+1][col_index] = restriction[col_index]
     return matrix
 
+# Replaces the values of each non basic variable
+
 
 def editDescriptionList(listRestrictions, i, value="1"):
     for j in range(len(listRestrictions)):
@@ -291,6 +295,17 @@ def editDescriptionList(listRestrictions, i, value="1"):
                 len(listRestrictions[j])-2, value)
 
 
+# This is the Core method which starts the Simplex iterations as its name suggests,
+# receiving the Matrix, the Number of Decision Variables as "vnBNumber,
+# H will be the headers which is a common array containing the String Values of the headers
+# of the main matrix since numpy does not support chars and strings
+# RD will contain a list like [U, x1, x2, x3] as the logical orientation where
+# the Row Descriptions is stored, this array should be read like this:
+# U
+# x1
+# x2
+# x3
+# And Finally OutputLocation which is the TextFile where the solution is written
 def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
     estado = 0
@@ -322,7 +337,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
                             vnBNumber, isMin), outputLocation)
                 break
         else:
-            #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
+            #   First get the less row[0][i] with i<VnBNumber - That is the PIVOT COLUMN
             cp_index = getIndexForLessN(matrix[0], len(matrix[0])-1)
             CP = matrix[:, cp_index]
             LD = matrix[:, len(matrix[0]) - 1]
@@ -337,15 +352,15 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
                 break
 
             FP = matrix[fp_index]
-            #   Interseccion entre COLUMNA PIVAOTE y FILA PIVOTE matrix[CP][FP] makes the numero pivote
+            #   Intersection entre PIVOT COLUMN y PIVOT ROW matrix[CP][FP] makes the PIVOT ELEMENT
             NP = matrix[fp_index][cp_index]
             entrante = H[cp_index + 1]
             saliente = RD[fp_index]
             response = f'VB entrante: {entrante}, VB saliente: {saliente}, Número Pivot: {NP}'
 
-            # variable basica que sale lp_index
+            # basic variable that comes out lp_index
             # Now set the all CP to 0 except the fp_index, fp_index = 1
-            # then operación de reglón: all the FP need to be / NP
+            # then row operation: all the FP need to be / NP
             # CP already has the reference
             for i in range(len(FP)):
                 FP[i] = round(FP[i] / NP, 6)
@@ -353,7 +368,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
             # for all rows
             oldCP = numpy.array(CP, copy=True)
             for i in range(len(matrix)):
-                # if not row pivote
+                # if not Pivot Row
                 if i != fp_index:
                     currentRow = matrix[i]
                     for j in range(len(matrix[i])):
@@ -367,7 +382,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
             # response
             writeToFile(response, outputLocation)
             writeToFile(f'Estado {estado}', outputLocation)
-            # Remove the saliente and add the entrante
+            # Remove the out coming and add the incoming
             RD[fp_index] = entrante
             str_matrix = getPrintableMatrix(
                 H, RD, matrix)
@@ -379,6 +394,8 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
 
 def formatFloatToPrint(num):
     return "{:.2f}".format(num)
+
+# Subtracts the values from the LD column to create the partial solution
 
 
 def getPartialAnwser(matrix, h, rd):
@@ -398,7 +415,7 @@ def getPartialAnwser(matrix, h, rd):
             rows_solution.append(0)
 
     response = formatFloatToPrint(rows_solution[0])
-    # use only the variables de desicion
+    # use only the decision variable
     for i in range(1, len(rows_solution)):
         response += "," + formatFloatToPrint(rows_solution[i])
     return f'U = {formatFloatToPrint(LD[0])},({response})'
@@ -442,6 +459,8 @@ def getIndexLesserWhileDivByCP(ld, cp, filename):
     return resultIndex
 
 
+# Subtracts the lesser value from a row, this for the simplex method logic
+# which requires to find the lesser value in order to locate de pivot column
 def getIndexForLessN(row, end=-1):
     resultIndex = 0
     if end == -1:
@@ -468,6 +487,8 @@ def displayHelp():
     print(f"{BASH_COLORS.OKGREEN}python simplex.py filename.txt{BASH_COLORS.ENDC}")
     print('\n')
 
+# Method to edit the TXT file selected
+
 
 def writeToFile(content, fileName, color=""):
     if color == "":
@@ -482,6 +503,9 @@ def writeToFile(content, fileName, color=""):
     file.write(content + '\n')
     file.close()
 
+# This method is meant to create the origin matrix from the problem instructions
+# Creates the matrix straight from the txt file where the problem statements are
+
 
 def buildMatrix(coeficientesFn, coeficientesRestr, problemDescr):
     # cols = number of restrictions + number of variables + 2 (VB & LD)
@@ -489,8 +513,8 @@ def buildMatrix(coeficientesFn, coeficientesRestr, problemDescr):
     numberDesicionVars = int(problemDescr[2])
     numberRestrictions = int(problemDescr[3])
     numberOfTotalVars = numberDesicionVars + numberRestrictions
-    # cols = (amout of total vars) + LD
-    # rows = (amout of restrictions or basic vars) + U
+    # cols = (amount of total vars) + LD
+    # rows = (amount of restrictions or basic vars) + U
     matrix = numpy.zeros(
         [(numberRestrictions + 1), (numberOfTotalVars + 1)])
     currentRowIndex = 0
@@ -514,6 +538,8 @@ def buildMatrix(coeficientesFn, coeficientesRestr, problemDescr):
         matrix[i + 1][lastRowIndex] = coeficientesRestr[i][len(
             coeficientesRestr[i]) - 1]
     return matrix
+
+# To Translate the logical matrix into a string, with the main purpose of showing on console
 
 
 def getPrintableMatrix(headers, rowsDescr, content):
