@@ -161,7 +161,6 @@ def main():
                 MrowsDescription.append("S" + str(amountofS))
                 amountofS += 1
 
-
             elif i[positionSize] == '=':
                 i[numberDesicionVars + numberOfA + numberOfS] = '1'
                 numberOfA += 1
@@ -222,8 +221,6 @@ def main():
 
         startSimplexIterationsWithM(
             matrixBigM, numberDesicionVars, Mheader, MrowsDescription, solutionFileName)
-
-
 
     elif listProblemDescription[0] == '2':
         print("2 fases")
@@ -426,9 +423,11 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
                     currentRow = matrix[i]
                     for j in range(len(matrix[i])):
                         if oldCP[i] > 0:
-                            currentRow[j] = round(currentRow[j] -(abs(oldCP[i]) * FP[j]), 6)
+                            currentRow[j] = round(
+                                currentRow[j] - (abs(oldCP[i]) * FP[j]), 6)
                         else:
-                            currentRow[j] = round(currentRow[j] +(abs(oldCP[i]) * FP[j]), 6)
+                            currentRow[j] = round(
+                                currentRow[j] + (abs(oldCP[i]) * FP[j]), 6)
 
             # response
             writeToFile(response, outputLocation)
@@ -445,6 +444,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation):
 
 def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
     # Check if all the row[0][i] with i<VnBNumber  are >= 0
+    matrix[0][len(matrix[0])-1] *= -1
     estado = 0
     writeToFile(f'Estado: {estado}', outputLocation)
     str_matrix = getPrintableMatrix(
@@ -495,8 +495,8 @@ def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
             # then operación de reglón: all the FP need to be / NP
             # CP already has the reference
             for i in range(len(FP)):
-                if NP.imag ==0:
-                    temp = complex(FP[i].real / NP.real,0)
+                if NP.imag == 0:
+                    temp = complex(FP[i].real / NP.real, 0)
                 else:
                     temp = complex(FP[i].real / NP.real, FP[i].imag / NP.imag)
                 temp = complex(round(temp.real, 6), round(temp.imag, 6))
@@ -508,19 +508,23 @@ def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
             for i in range(len(matrix)):
                 # if not row pivote
                 if i != fp_index:
-                    currentRow = matrix[i]                      # i es el pivote, j es el la fila, FP es fila pivote, de la segunda tabla y esta bien
-                    for j in range(len(matrix[i])):             # CurrentRow muestra cada celda de matriz
+                    # i es el pivote, j es el la fila, FP es fila pivote, de la segunda tabla y esta bien
+                    currentRow = matrix[i]
+                    # CurrentRow muestra cada celda de matriz
+                    for j in range(len(matrix[i])):
 
-                        temp = complex(oldCP[i].real * FP[j].real, abs(oldCP[i].imag) * FP[j].imag)
-                        temp = complex(round(temp.real,3), round(temp.imag,3))
-                        #print('temporal')
-                        #print(temp)
+                        temp = complex(
+                            oldCP[i].real * FP[j].real, abs(oldCP[i].imag) * FP[j].imag)
+                        temp = complex(round(temp.real, 3),
+                                       round(temp.imag, 3))
+                        # print('temporal')
+                        # print(temp)
                         if oldCP[i].real > 0:  # oldCP es la columna de la fila pasada, esta bien
-                            currentRow[j]= round(currentRow[j] -temp,3)
+                            currentRow[j] = round(currentRow[j] - temp, 3)
                             #currentRow[j] = round(currentRow[j] -(abs(oldCP[i]) * FP[j]), 6)
 
                         else:
-                            currentRow[j] = round(currentRow[j] + temp,3)
+                            currentRow[j] = round(currentRow[j] + temp, 3)
                             #currentRow[j] = round(currentRow[j] +(abs(oldCP[i]) * FP[j]), 6)
 
             # response
@@ -534,8 +538,7 @@ def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
             partial_answer = getPartialAnwser(matrix, H, RD)
             writeToFile(
                 f'Respuesta Parcial: {partial_answer}', outputLocation)
-
-
+            break
 
 
 def formatFloatToPrint(num):
@@ -589,7 +592,11 @@ def getIndexLesserWhileDivByCP(ld, cp):
     for i in range(1, len(ld)):
         # omit 0 because is undefined
         if type(cp[i]) is numpy.complex128:
-            if cp[i].real > 0:
+            if cp[i].imag != 0:
+                if (resultIndex == -1) or (round(ld[i].imag / cp[i].imag, 6) < round(ld[resultIndex].imag / cp[resultIndex].imag, 6)):
+                    resultIndex = i
+                # TODO: missing if the M is the same
+            else:
                 if (resultIndex == -1) or (round(ld[i].real / cp[i].real, 6) < round(ld[resultIndex].real / cp[resultIndex].real, 6)):
                     resultIndex = i
         else:
@@ -607,8 +614,12 @@ def getIndexForLessN(row, end=-1):
 
     for i in range(1, end):
         if type(row[i]) is numpy.complex128:
-            if round(row[i].real, 6) < round(row[resultIndex].real, 6):
-                resultIndex = i
+            if row[i].imag != 0:
+                if round(row[i].imag, 6) < round(row[resultIndex].imag, 6):
+                    resultIndex = i
+            else:
+                if round(row[i].real, 6) < round(row[resultIndex].real, 6):
+                    resultIndex = i
         else:
             if round(row[i], 6) < round(row[resultIndex], 6):
                 resultIndex = i
