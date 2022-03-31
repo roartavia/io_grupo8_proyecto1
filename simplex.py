@@ -5,8 +5,8 @@ __author__ = "Ruy Fuentes, Rodolfo Artavia, Esteban Aguilera"
 import sys
 import cmath
 import numpy
-from pickle import TRUE
 import os.path
+from pickle import TRUE
 from fileinput import filename
 
 
@@ -359,9 +359,9 @@ def main():
 
                 RU = matrix[0]
                 for col_index in range(len(RU)):
-                    for complex in indexesWithMoreThan0InU:
-                        row_index = complex[0]
-                        static = complex[1]
+                    for complex_2 in indexesWithMoreThan0InU:
+                        row_index = complex_2[0]
+                        static = complex_2[1]
                         RU[col_index] -= matrix[row_index][col_index] * static
             writeToFile("FASE 2", solutionFileName)
             startSimplexIterations(
@@ -539,7 +539,7 @@ def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
             #   Then for each item in LD (starting with 1 - ignore the 0) (this is the matrix[0][matrix.len()-1]) do item/Columna Pivote)
             #   Get the index of CP that is lesser of all the devisions (ignore the LD when value is 0)
             #   This index is the FILA PIVOTE
-            fp_index = getIndexLesserWhileDivByCP(LD, CP)
+            fp_index = getIndexLesserWhileDivByCP(LD, CP, outputLocation)
 
             if fp_index == -1:
                 writeToFile("There is not possible answer because the problem is not bounded, U es no acotada",
@@ -601,7 +601,6 @@ def startSimplexIterationsWithM(matrix, vnBNumber, H, RD, outputLocation):
             partial_answer = getPartialAnwser(matrix, H, RD)
             writeToFile(
                 f'Respuesta Parcial: {partial_answer}', outputLocation)
-            break
 
 
 def formatFloatToPrint(num):
