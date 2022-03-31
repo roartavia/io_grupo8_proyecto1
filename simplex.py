@@ -448,7 +448,7 @@ def startSimplexIterations(matrix, vnBNumber, H, RD, outputLocation, isMin=False
 
                 writeToFile(getFinalAnswer(matrix, H, RD,
                             vnBNumber, isMin), outputLocation)
-                break
+            break
         else:
             #   First get the less row[0][i] with i<VnBNumber - Thats the COLUMNA PIVOTE
             cp_index = getIndexForLessN(matrix[0], len(matrix[0]) - 1)
